@@ -215,7 +215,7 @@ VLM Adapter 负责调用 VLM 或 mock VLM，并输出视觉初判。
 
 - `advice` 必须保留。
 - `description` 必须保留，不改名。
-- `page_type`、`risk_behavior`、`advice` 应遵循 `online-prompt.txt` 中的枚举。
+- `page_type` 应遵循 `specs/12-page-type-spec.md` 中的枚举；`risk_behavior`、`advice` 应遵循线上审核 prompt 中的枚举。
 - VLM 只能基于截图可见内容判断，不使用 URL、客户等级或平台字段。
 - VLM 失败时不得默认 `pass`，应进入 `need_preview` 或错误复核路径。
 
@@ -957,4 +957,3 @@ MVP 输出建议如下：
 - 哪些风险类型必须高优先级人审。
 - 哪些 case 可进入抽检而非全量人工查看。
 - 自动处置能力的后续接入条件。
-

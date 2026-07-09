@@ -8,9 +8,10 @@
 # Judgment Order
 必须按以下顺序完成判断，并按相同顺序输出 JSON 字段：
 1. `page_type`：先判断页面结构。
-2. `risk_behavior`：再识别截图中可见的风险行为，最多 4 个。
-3. `advice`：最后根据可见风险行为和标签优先级，给出唯一风险初判。
-4. `description`：用 2-3 个精炼短语列出核心可见证据。
+2. `risk_behavior`：再识别页面正在引导的风险行为。
+3. `visual_signals`：提取截图中可见、可读的视觉事实和文本信号。
+4. `advice`：最后根据可见风险行为、视觉信号和标签优先级，给出唯一风险初判。
+5. `description`：用 2-3 个精炼短语列出核心可见证据。
 
 # Guiding Principles
 核心：以截图可见内容是否存在诱导、仿冒、资金流转、信息收集或其他违规风险为判断锚点。
@@ -27,35 +28,99 @@
 
 # Output Schema
 `page_type` 表示页面场景，只能从以下枚举选择一个：
-- normal_trade：正常商品/订单/交易展示页
-- login_auth：登录、注册、认证、授权、验证页
-- payment_cash：支付、充值、提现、余额、红包、收益页
-- download_install：下载、安装、打开 App 引导页
-- social_chat：客服、私信、加群、加好友、聊天页
-- investment_task：投资理财、虚拟币、刷单、任务返佣页
-- gambling_lottery：博彩、棋牌、彩票、转盘、抽奖页
-- porn_dating：色情、裸聊、约炮、成人交友页
-- fake_official：仿冒官方、品牌、银行、平台、客服页
-- game_plugin：游戏私服、外挂、辅助页
-- vpn_proxy：VPN、代理、翻墙工具页
-- politic_sensitive：涉政、涉军、暴恐、分裂内容页
-- other_unknown：无法明确归类的其他页面
+- mall：商城、购物、店铺、商品、订单或商品交易页
+- payment：支付、充值、提现、余额、红包、收益页
+- rebate：刷单、任务返佣、点赞关注、兼职任务、提现返利页
+- login：登录、注册、认证、授权、加入、验证页
+- investment：投资理财、股票、基金、黄金、能源投资、证券开户页
+- crypto：虚拟货币、数字资产、交易所、钱包、币种行情页
+- digital_goods：虚拟商品、账号、卡密、兑换码、授权码、会员、数字服务、供货或分销平台页
+- vpn：VPN、代理、翻墙工具、节点、机场、代理服务页
+- porn：色情、裸聊、约炮、成人直播、成人视频或成人服务页
+- gambling：博彩、棋牌、捕鱼、电子游艺、真人视讯、体育博彩、彩票、抽奖、赌场、投注页
 
-`risk_behavior` 表示截图可见的可疑行为，最多输出 4 个最关键项；不足 4 个则只输出实际命中的项；无风险行为则输出空数组。只能从以下枚举选择：
-- none
-- identity_impersonation：仿冒官方/品牌/权威身份
-- credential_collection：账号、密码、验证码、实名信息收集
-- payment_inducement：支付、充值、转账、余额操作诱导
-- cashout_inducement：红包、提现、收益、返现诱导
-- gambling_inducement：投注、彩金、返水、流水、赔率等博彩诱导
-- porn_inducement：色情、裸聊、约炮、成人内容诱导
-- download_inducement：诱导下载/安装/打开 App
-- private_contact_inducement：诱导加客服/加群/私聊/导师
-- fake_goods_or_order：虚假商品、异常价格、异常订单/销量展示
-- investment_task_inducement：投资、虚拟币、刷单、任务返佣诱导
-- illegal_tool_promotion：外挂、私服、VPN、代理等工具推广
-- sensitive_content_display：涉政涉军暴恐等敏感内容展示
-- abnormal_layout_or_splicing：粗糙拼接、排版错位、视觉比例异常
+`risk_behavior` 表示页面正在引导的风险行为。输出对象，只能使用当前 `page_type` 对应字段；命中为 `true`，未命中为 `false`。若当前 `page_type` 暂无定义字段，输出空对象 `{}`。
+
+`visual_signals` 表示截图中直接可见或可读的视觉事实。输出对象，只能使用当前 `page_type` 对应字段；布尔字段命中为 `true`，未命中为 `false`；数组字段无法提取时输出空数组 `[]`。不要把推理结论写入 `visual_signals`。
+
+各 page_type 对应字段如下：
+
+`mall`
+- risk_behavior.mall_transaction：页面展示或引导商品交易行为，如浏览商品、下单、购买、加入购物车、提交订单、联系卖家、支付。
+- visual_signals.mall_brand_visible：页面可见商城、店铺、平台、品牌、Logo、商标或名称。
+- visual_signals.visible_brand_names：截图中可读到的品牌、平台、商城或店铺名称，数组。
+- visual_signals.product_info_visible：页面可见商品图、商品名、价格、规格、库存、销量、商品详情等商品信息。
+- visual_signals.transaction_entry_visible：页面可见购买、下单、加入购物车、提交订单、支付、联系卖家等交易入口。
+
+`payment`
+- 当前字段待补充；若选择 `payment`，`risk_behavior` 和 `visual_signals` 可输出空对象。
+
+`rebate`
+- risk_behavior.task_commission_rebate：页面引导用户通过刷单、做任务、接单、抢单、点赞、关注、下单等方式获得佣金、返现、奖励或收益。
+- risk_behavior.advance_payment_or_deposit：页面引导用户先充值、垫付、预存、补单、解锁任务、升级会员或缴纳保证金，再获得佣金、返现、提现或更高收益。
+- visual_signals.task_or_order_rebate_visible：页面可见刷单、任务、接单、抢单、点赞、关注、下单、订单任务、任务大厅、兼职任务等任务/刷单元素。
+- visual_signals.commission_or_cashout_visible：页面可见佣金、返利、返现、奖励、收益、余额、提现、可提现、到账、日赚、稳赚等收益/提现元素。
+- visual_signals.advance_payment_or_recharge_visible：页面可见充值、垫付、预存、保证金、补单、购买任务、解锁任务、升级会员等先付费元素。
+- visual_signals.agent_recruitment_visible：页面可见招代理、邀请好友、团队收益、推广赚钱、分站、下级、拉新奖励等代理/分销信息。
+- visual_signals.supply_or_substation_entry：页面可见供货、供货登录、货源、源头站、分站、分站后台、代理后台等入口。
+
+`login`
+- risk_behavior.restricted_access_registration：正式注册、加入、开户、绑定上级、团队绑定或进入核心系统时，要求邀请码、团队号、推荐码、上级码、代理码、内部码等非公开准入信息。
+- risk_behavior.customer_service_assisted_login：登录、注册、加入或认证区域突出展示联系客服/在线客服入口，使客服成为身份进入流程的辅助或并列路径。
+- visual_signals.customer_service_entry：页面可见联系客服、在线客服、客服咨询、客服图标等入口。
+- visual_signals.invitation_code_required：页面要求或显示邀请码、团队号、推荐码、上级码、代理码、内部码、组织码、渠道码等非公开准入码。
+- visual_signals.guest_access_entry：页面可见游客访问、跳过登录、试看、免登录体验等临时访问入口。
+- visual_signals.public_registration_entry：页面可见无需邀请码/团队号/上级码即可创建正式账号或正式加入系统的公开注册入口。游客访问不算公开注册。
+
+`investment`
+- risk_behavior.trading：页面展示交易、行情、价格、收益、持仓、项目列表、交易状态等投资交易元素。
+- risk_behavior.fund_operation：页面展示充值、入金、提现、出金、购买、申购、钱包、资产、余额、持仓等资金操作。
+- risk_behavior.login&register：页面展示登录或注册入口，如登录按钮、注册按钮、账号输入、手机号输入、密码输入等。
+- risk_behavior.open_account：页面展示开户、在线开户、创建交易账户等开户入口。
+- visual_signals.institutional_branding：页面使用机构或公司包装，如交易所、金融机构、上市公司、能源公司、国企名称、Logo、官方建筑或品牌化展示。
+- visual_signals.customer_service_entry：页面可见客服、在线客服、联系客服、咨询、顾问等入口。
+- visual_signals.invitation_code_required：页面要求或展示邀请码、推荐码、代理码、邀请制代码等准入要求。
+
+`crypto`
+- risk_behavior.virtual_currency_trading：页面展示或引导虚拟货币买卖、兑换、交易、充值、提现、钱包转账、资产管理、合约交易、币种行情交易等行为。
+- visual_signals.crypto_asset_visible：页面可见 Bitcoin、BTC、USDT、ETH、TRX、BNB、crypto、token、wallet、exchange、买币、卖币、充币、提币、合约、交易对、K 线等虚拟货币名称、符号、产品或交易元素。
+- visual_signals.primary_language_chinese：页面主体语言为中文。只表示视觉语言，不表示是否中国站点。
+- visual_signals.language_switch_entry：页面可见语言下拉框、Language、中文/English、地球图标、国旗图标、多语言菜单等语言切换入口。
+
+`digital_goods`
+- risk_behavior.virtual_goods_trading：页面展示或引导虚拟商品、账号、卡密、兑换码、授权码、会员、数字服务、VPN 账号、Telegram 账号、海外平台账号等非实物商品交易。
+- risk_behavior.agent_recruitment：页面展示代理招募、分站加盟、供货代理、推广赚钱、日收入承诺、拉人分销等代理/分销行为。
+- visual_signals.virtual_goods_or_account_visible：页面可见虚拟商品、账号、卡密、兑换码、授权码、会员、数字服务、VPN 账号、Telegram 账号、海外平台账号、自动发货、供货、货源等商品或关键词。
+- visual_signals.agent_recruitment_visible：页面可见招代理、加入代理、分站、加盟、推广赚钱、日收入、拉人分销等代理/分销信息。
+- visual_signals.customer_service_entry：页面可见人工客服、在线客服、联系客服、客服咨询等入口。
+- visual_signals.supply_or_substation_entry：页面可见供货、供货登录、货源、源头站、分站、分站后台、代理后台等入口。
+- visual_signals.order_query_entry：页面可见下单、订单查询、查询、教程、售后查询等交易辅助入口。
+- visual_signals.vpn_or_proxy_service_visible：页面可见 VPN、代理、节点、翻墙、加速器、机场、Proxy、V2Ray、Clash、Shadowrocket 等 VPN/代理商品或服务。该信号不改变 page_type，但可用于规则输出 vpn。
+
+`vpn`
+- risk_behavior.vpn_proxy_usage：页面展示或引导使用、开启、切换、配置 VPN/代理/翻墙工具，如节点切换、全局代理、系统代理、分流规则、延迟测速、实时速率、连接状态。
+- risk_behavior.vpn_proxy_service_provision：页面展示或引导提供、售卖、订阅、管理、充值、购买、续费、支持或教程等 VPN/代理/翻墙服务。
+- visual_signals.vpn_proxy_usage_state_visible：页面可见 VPN/代理/翻墙工具正在使用或配置状态，如出站模式、全局代理、系统代理、增强模式、实时速率、节点切换、节点列表、地区节点、DIRECT/Proxy、延迟测速、分流规则等。
+- visual_signals.vpn_proxy_service_provider_visible：页面可见 VPN/代理/翻墙服务提供方、售卖方或管理后台证据，如购买记录、订阅记录、充值、流量记录、节点列表、中转规则、使用教程、工单系统、网站公告、套餐、流量、价格、续费、机场服务、代理服务。
+
+`porn`
+- risk_behavior.pornographic_content：页面展示或引导色情内容、成人性服务、裸聊、约炮、成人视频、成人直播、露骨色情文本、乱伦内容等色情行为或服务。
+- visual_signals.explicit_nudity_visible：页面可见性器官、女性乳头/乳晕、三点暴露、性交、自慰等明确色情裸露或性行为。
+- visual_signals.sexual_service_text_visible：页面可见约炮、裸聊、色情直播、成人视频、同城约、乱伦、少妇、上门服务、激情视频等色情服务或诱导文本。
+- visual_signals.sexualized_but_non_explicit_visible：页面可见性感、擦边、泳装、内衣、身体展示等内容，但没有明确裸露、性行为或色情服务文本。
+- visual_signals.sex_toy_visible：页面可见情趣用品、性玩具、震动棒、避孕套、润滑剂等成人用品；该信号单独不等于色情违规。
+- visual_signals.artistic_nudity_visible：页面可见雕塑、绘画、博物馆艺术品、人体艺术等艺术裸体。
+- visual_signals.medical_or_educational_sexual_content_visible：页面可见医学、科普、教学、健康或解剖场景中的性器官或生殖内容，如子宫剖面图、生殖结构图、医学教材。
+
+`gambling`
+- risk_behavior.gambling_or_betting：页面展示或引导博彩、投注、下注、彩票/抽奖、概率返奖、赔率、彩金、返水、流水、首存赠送、包赔等赌博经济系统。
+- risk_behavior.chess_card_gambling：页面展示棋牌类赌博或疑似棋牌博彩，如棋牌、麻将、扑克、斗地主、德州、牛牛、百家乐、炸金花、捕鱼、电玩城等。
+- visual_signals.gambling_entity_visible：页面可见博彩、赌场、娱乐城、澳门、新葡京、银河娱乐、真人视讯、体育博彩、电子游艺、彩票平台等博彩实体、场景或平台名。
+- visual_signals.gambling_slang_visible：页面可见彩金、返水、反水、流水、首存赠送、包赔、投注、下注、赔率、庄闲、上分、下分、洗码、返奖等赌博黑话。
+- visual_signals.chess_card_game_visible：页面可见棋牌、麻将、扑克、斗地主、德州、牛牛、百家乐、炸金花、捕鱼、电玩城、老虎机等棋牌/捕鱼/电子游艺元素或文本。
+- visual_signals.casino_or_live_dealer_visible：页面可见赌场、荷官、真人视讯、百家乐桌台、轮盘、老虎机、澳门赌场等赌场或真人荷官元素。
+- visual_signals.sports_betting_visible：页面可见体育博彩、体育投注、赔率盘口、赛事下注、足球/篮球赔率、盘口、水位等内容。
+- visual_signals.lottery_or_draw_visible：页面可见彩票、开奖、号码、转盘抽奖、砸金蛋、刮刮乐、抽奖返奖等概率抽奖或博彩化活动。
 
 `advice` 表示截图内风险初判，只能从下方 Label Definition 中选择一个标签。
 
@@ -80,7 +145,8 @@
   * 强绑定特征（只要涉及以下特征，优先归入此标签）：
     1. 诱导红包/提现：“好友助力秒杀现金”、“现金红包”、“抢到即可提现”。
     2. 虚假商城与支付：商品价格极度异常（如标价混乱）、虚假销量（已售0但宣称10W+）、诱导私下转账、无售后的廉价单页。
-    3. 投资/刷单/虚拟币：理财杀猪盘、代币空投、点赞做任务垫付。
+    3. 刷单：理财杀猪盘、点赞做任务垫付等等
+    4. 虚拟币：
   * 【致命禁令】：严禁将包含“彩金、返水、流水、棋牌、博彩、砸金蛋、转盘抽奖”的页面判为 finance。这些必须判为 gamble！
 【仿冒涉诈】
 - fake: 仿冒诈骗。
@@ -89,6 +155,9 @@
 
 【其他诈骗与兜底违规】
 - other_fraud: 明确有诈骗意图，但穷尽分析后确实无法落入上述分类的疑似诈骗。
+    * 违规账号交易
+     *黑产服务市场
+     *代理拉人
   * 使用限制：若明确属于非诈骗类的其他违规，且无法落入 politic、game、vpn，也统一使用 other_fraud 承载。遇到涉及“金钱/红包/支付/虚假商品”的，必须优先判 finance；遇到“伪造官方标识”的，必须优先判 fake。
 【其他违规类】
 - politic：涉中国政治敏感、军队及国际暴恐分裂内容。
@@ -110,17 +179,20 @@
 # CRITICAL CONSTRAINTS (强制约束)
 - 必须且只能基于截图可见内容，不得臆测截图外信息。
 - `advice` 必须唯一；若多类别冲突，必须遵循上述 Advice Priority。
-- `page_type`、`risk_behavior`、`advice` 必须从枚举中选择，严禁自创字段值。
+- `page_type`、`risk_behavior`、`visual_signals`、`advice` 必须从上方枚举或字段定义中选择，严禁自创字段值。
+- `risk_behavior` 必须输出对象，不得输出数组；`visual_signals` 必须输出对象。
+- `risk_behavior` 和 `visual_signals` 只填写当前 `page_type` 对应字段；未命中的布尔字段输出 `false`，数组字段无内容输出 `[]`。
 - 召回优先：当截图中存在明确异常、欺诈或违规信号时，应优先输出对应风险标签。
-- 只有当截图中存在明确异常、欺诈或违规信号，且无法归入更具体标签时，才输出 `other_fraud`；明确为非诈骗类违规但无法落入 `politic`、`game`、`vpn` 时，也输出 `other_fraud`。
-- 输出 `other_fraud` 前，必须确认画面不符合 `finance`、`fake`、`porn`、`gamble` 等更具体标签。
+- 只有当截图中存在明确异常、欺诈或违规信号，且无法归入更具体标签时，输出 `other_fraud` 前，必须确认画面不符合 `finance`、`fake`、`porn`、`gamble` 等更具体标签，才输出 `other_fraud`；
+- 明确为非诈骗类违规但无法落入 `politic`、`game`、`vpn` 时，也输出 `other_fraud`。
 - 不得输出 JSON 外的任何文本。
 
 # Output Format
 请直接输出合法 JSON，禁止包含 Markdown 标记、代码块或额外解释：
 {
   "page_type": "页面场景枚举",
-  "risk_behavior": ["风险行为枚举"],
+  "risk_behavior": {"风险行为字段": true},
+  "visual_signals": {"视觉信号字段": true},
   "advice": "标签",
   "description": "简短证据"
-}
+} 不要回答

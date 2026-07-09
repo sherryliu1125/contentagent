@@ -232,7 +232,7 @@ class VisualSignals(BaseModel):
 | `weak.login.invite_customer_service` | `has_login_form` + `has_invite_code_field` + `has_customer_service_entry` | weak | need_preview | 登录页同时出现邀请码和客服入口，疑似封闭式引流或灰产入口 | 待业务确认 |
 | `weak.login.invite_required_private_contact` | `registration_requires_invite_code` + `has_private_contact_entry` | weak | need_preview | 无邀请码需私域联系，风险高于普通登录页 | 待业务确认 |
 
-### 7.2 payment_cash
+### 7.2 payment
 
 #### 需要提取的 VisualSignals
 
@@ -267,7 +267,7 @@ class VisualSignals(BaseModel):
 | --- | --- | --- | --- | --- | --- |
 | `weak.download.reward_install` | `has_download_button` + (`has_install_inducement` or `has_reward_claim`) | weak | need_preview | 下载页带奖励或诱导安装信号 | 待业务确认 |
 
-### 7.4 normal_trade / fake_mall
+### 7.4 mall / brand_impersonation
 
 #### 需要提取的 VisualSignals
 
@@ -285,7 +285,7 @@ class VisualSignals(BaseModel):
 | --- | --- | --- | --- | --- | --- |
 | `weak.trade.official_claim_payment` | `has_official_claim` + `has_payment_entry` | weak | need_preview | 有官方声明且引导交易，需要结合品牌、URL、平台信息进一步判断 | 待业务确认 |
 
-### 7.5 finance / crypto
+### 7.5 investment / crypto / rebate
 
 #### 需要提取的 VisualSignals
 
@@ -454,8 +454,8 @@ MVP 不应为了 `VisualSignals` 默认增加二次模型调用。
 | 登录页 + 邀请码 + 客服入口 | 验证 login_auth 视觉信号 |
 | 登录页 + 无邀请码无法注册 | 验证 `registration_requires_invite_code` |
 | 下载页 + 奖励诱导 | 验证 download_install 信号 |
-| 支付页 + 银行卡/实名字段 | 验证 payment_cash 信号 |
-| 商城页 + 官方声明 + 支付入口 | 验证 fake_mall / normal_trade 信号 |
+| 支付页 + 银行卡/实名字段 | 验证 payment 信号 |
+| 商城页 + 官方声明 + 支付入口 | 验证 mall / brand_impersonation 信号 |
 | 虚拟币中文站 + 充值/提现 | 验证 crypto 视觉信号 |
 | 虚拟币英文站 + 无中文服务 | 验证语言和受众信号 |
 | URL 异常 + 无视觉违规 | 验证 URL weak signal 不直接 block |
