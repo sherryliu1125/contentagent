@@ -57,6 +57,26 @@ class VLMAdvice(str, Enum):
     VPN = "vpn"
 ```
 
+### 2.4 page_type
+
+必须与 `change.md` 和 `specs/12-page-type-spec.md` 对齐：
+
+```python
+class PageType(str, Enum):
+    MALL = "mall"
+    PAYMENT = "payment"
+    REBATE = "rebate"
+    LOGIN = "login"
+    INVESTMENT = "investment"
+    CRYPTO = "crypto"
+    DIGITAL_GOODS = "digital_goods"
+    VPN = "vpn"
+    PORN = "porn"
+    GAMBLING = "gambling"
+```
+
+不得输出 `login_auth`、`gambling_lottery`、`porn_dating`、`vpn_proxy`、`brand_impersonation`、`other_unknown` 等旧值。
+
 ## 3. ReviewInput
 
 ```python
@@ -84,8 +104,9 @@ class ReviewInput(BaseModel):
 ```python
 class VLMResult(BaseModel):
     advice: VLMAdvice
-    page_type: str
-    risk_behavior: list[str] = Field(default_factory=list, max_length=4)
+    page_type: PageType
+    risk_behavior: dict[str, bool] = Field(default_factory=dict)
+    visual_signals: dict[str, bool | list[str]] = Field(default_factory=dict)
     description: str
     raw_output: dict[str, Any] | None = None
     model_version: str = "mock-vlm-0.1"
@@ -94,9 +115,12 @@ class VLMResult(BaseModel):
 
 约束：
 
-- `advice`、`page_type`、`risk_behavior`、`description` 必须保留原始语义。
+- `advice`、`page_type`、`risk_behavior`、`visual_signals`、`description` 必须保留原始语义。
 - Agent 不得覆盖此模型。
-- `risk_behavior` 不允许为 `None`。
+- `risk_behavior` 必须是对象，不允许为 `None`，不得再使用数组。
+- `visual_signals` 必须是对象，不允许为 `None`。
+- `risk_behavior` 和 `visual_signals` 只能使用 `change.md` 已定义字段；`payment` 当前字段待补充，可输出空对象。
+- 未命中的布尔字段应输出 `false`；数组字段无内容时输出空数组。
 
 ## 5. URLClassification
 
@@ -219,4 +243,3 @@ class ReviewOutput(BaseModel):
 ```
 
 结构化失败时 `final_action=None`，不返回三值动作。
-

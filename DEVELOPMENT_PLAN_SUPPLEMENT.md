@@ -115,6 +115,7 @@ VLMResult
 advice
 page_type
 risk_behavior
+visual_signals
 description
 raw_output
 model_version
@@ -124,7 +125,8 @@ adapter_version
 限制条件：
 
 - 不得修改 VLM 原始字段语义。
-- `risk_behavior` 不允许为 `None`，无风险时为空数组。
+- `risk_behavior` 不允许为 `None`，必须是对象；无命中字段时为空对象。
+- `visual_signals` 不允许为 `None`，必须是对象；字段待补充或无命中时为空对象。
 - VLM 失败不得默认 `pass`，应记录 warning，并由后续 Evidence Gate 转入 `need_preview`。
 
 ### 第三阶段：URL 与资源类型识别

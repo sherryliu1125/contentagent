@@ -25,11 +25,25 @@
 | 设计点 | 新增或明确 |
 | --- | --- |
 | VLM 原始结果 | 必须独立保存为 `vlm_result` |
-| VLM 必留字段 | `advice`、`page_type`、`risk_behavior`、`description` |
+| VLM 必留字段 | `advice`、`page_type`、`risk_behavior`、`visual_signals`、`description` |
+| `page_type` | 收敛为 `change.md` 中已定义的 10 个值 |
+| `risk_behavior` | 从旧数组结构收敛为对象结构 |
+| `visual_signals` | 新增为 VLM 原始结果中的一等字段 |
 | Agent 结果 | 保存为 `agent_decision`，字段名使用 candidate 语义 |
 | 最终结果 | 保存为 `evidence_result` 和 `ReviewOutput` |
 | 字段写入责任 | 明确每个节点只能写入自己负责的字段 |
 | 平台字段缺失 | 显式进入 `missing_fields` 和 `warnings` |
+
+## 3.1 Page Type Field Delta
+
+本轮相对旧 spec 的核心变化：
+
+- `risk_behavior` 不再是 `list[str]`，必须是 `dict[str, bool]`。
+- `visual_signals` 必须作为对象输出，字段只记录截图中可见事实。
+- Rule Engine 使用 `page_type + risk_behavior + visual_signals` 作为稳定规则输入。
+- 旧 page type `login_auth`、`gambling_lottery`、`porn_dating`、`vpn_proxy` 等不再作为正式枚举。
+- `payment` 当前只保留 page type 名称，字段待后续补充，不新增未定义字段。
+- `change.md` 未覆盖的标签和页面字段暂不在本轮补充。
 
 ## 4. 异常处理 Delta
 
@@ -38,6 +52,8 @@
 | 输入校验失败 | 结构化失败，`final_action=None` |
 | VLM 失败 | 不默认 `pass`，降级为 `need_preview` |
 | VLM schema 非法 | 不中断流程，记录 warning，最终至少 `need_preview` |
+| VLM page_type 非法 | 不中断流程，记录 warning，最终至少 `need_preview` |
+| VLM page 字段结构非法 | `risk_behavior` / `visual_signals` 非对象时记录 warning，最终至少 `need_preview` |
 | URL 解析失败 | 记录 parse error，通常进入 `need_preview` |
 | Rule Engine 异常 | fallback 为弱信号复核路径 |
 | Agent 输出非法 | 丢弃 Agent 输出，使用规则层 fallback |
@@ -86,4 +102,3 @@ agent_decision.final_action_candidate
 evidence_result.final_action
 output.final_action
 ```
-

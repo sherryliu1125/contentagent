@@ -26,7 +26,7 @@ flowchart TD
 | 节点 | 作用 |
 | --- | --- |
 | `input_validate` | 校验输入并初始化 `ReviewState` |
-| `mock_vlm_adapter` | 生成 mock VLM 原始判断 |
+| `mock_vlm_adapter` | 生成 mock VLM 原始判断，包括 `page_type`、`risk_behavior`、`visual_signals`、`advice`、`description` |
 | `url_resource_classifier` | 解析 URL 和资源类型 |
 | `mock_platform_context` | 构造 mock 平台上下文 |
 | `rule_engine` | 输出硬规则、弱信号、保护因子和风险等级 |
@@ -73,6 +73,13 @@ valid input
 - 继续 URL、平台、规则、Agent、Evidence。
 - 最终不能默认 `pass`，通常为 `need_preview`。
 
+### 6.2.1 VLM page_type schema 非法
+
+- `page_type` 不在 `specs/12-page-type-spec.md` 的允许枚举内时，记录 `vlm_page_type_invalid`。
+- `risk_behavior` 或 `visual_signals` 不是对象时，记录 `vlm_page_fields_invalid`。
+- 不把旧数组结构自动当成合法结构；如需兼容旧数据，应在 adapter 层显式转换并记录 warning。
+- 最终不能默认 `pass`，通常为 `need_preview`。
+
 ### 6.3 平台字段缺失
 
 - `platform_context.missing_fields` 记录缺失字段。
@@ -105,4 +112,3 @@ valid input
 | Rule Engine | 可读取本地规则配置 |
 | Agent Decision | MVP 可为 deterministic mock |
 | Audit Logger | 写 JSONL 或内存 sink |
-

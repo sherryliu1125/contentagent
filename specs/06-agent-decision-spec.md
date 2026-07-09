@@ -9,6 +9,11 @@ Agent Decision Node 负责在受控上下文中输出候选动作和解释。Age
 Agent 只允许读取：
 
 - `vlm_result`
+  - `advice`
+  - `page_type`
+  - `risk_behavior`
+  - `visual_signals`
+  - `description`
 - `url_classification`
 - `platform_context`
 - `rule_result`
@@ -50,6 +55,7 @@ Prompt 必须包含：
 7. v4/v5 中国站客户默认保护，除非命中明确违规。
 8. 证据不足时输出 need_preview。
 9. 必须输出合法 JSON。
+10. 不得发明 `change.md` 未定义的 `risk_behavior` 或 `visual_signals` 字段。
 ```
 
 ## 5. 防编造机制
@@ -58,6 +64,7 @@ Prompt 必须包含：
 | --- | --- |
 | 编造平台字段 | 输出引用字段必须存在于 `platform_context` |
 | 覆盖 VLM | Agent schema 不包含写回 VLM 的字段 |
+| 编造 page_type 字段 | 只允许引用 `vlm_result` 中已有字段 |
 | 过度推理 | Prompt 限制只引用输入上下文 |
 | 弱信号升级 | Evidence Gate 校验 `block` 门槛 |
 | 非法动作 | Pydantic 枚举校验 |
@@ -103,4 +110,3 @@ def decide(rule_result):
 - 工具调用可能引入截图外信息。
 - 自主规划路径不稳定。
 - 难以定位误判来自规则、VLM 还是 Agent。
-

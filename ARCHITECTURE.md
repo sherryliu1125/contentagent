@@ -23,7 +23,8 @@ VLM 必须先输出以下字段：
 {
   "advice": "string",
   "page_type": "string",
-  "risk_behavior": ["string"],
+  "risk_behavior": {},
+  "visual_signals": {},
   "description": "string"
 }
 ```
@@ -101,7 +102,7 @@ MVP 阶段遵循以下原则：
 Pydantic 的作用：
 
 - 校验输入字段，例如 `url` 必填。
-- 固定 VLM 输出字段：`advice`、`page_type`、`risk_behavior`、`description`。
+- 固定 VLM 输出字段：`advice`、`page_type`、`risk_behavior`、`visual_signals`、`description`。
 - 约束 `final_action` 只能为 `block`、`need_preview`、`pass`。
 - 定义 `ReviewState`、`ReviewInput`、`VLMResult`、`PlatformContext`、`RuleResult`、`ReviewOutput`。
 - 为 mock adapter 和真实 adapter 提供统一数据契约。
@@ -148,7 +149,7 @@ Input:
   接收审核任务，完成基础字段校验，初始化 ReviewState。
 
 VLM Adapter:
-  基于图片或网页快照输出 advice、page_type、risk_behavior、description。
+  基于图片或网页快照输出 advice、page_type、risk_behavior、visual_signals、description。
 
 URL / Resource Classifier:
   识别 URL 特征、资源类型、是否纯图片、是否网页或落地页。
@@ -205,8 +206,16 @@ VLM Adapter 负责调用 VLM 或 mock VLM，并输出视觉初判。
 ```json
 {
   "advice": "good",
-  "page_type": "other_unknown",
-  "risk_behavior": [],
+  "page_type": "mall",
+  "risk_behavior": {
+    "mall_transaction": false
+  },
+  "visual_signals": {
+    "mall_brand_visible": false,
+    "visible_brand_names": [],
+    "product_info_visible": false,
+    "transaction_entry_visible": false
+  },
   "description": "未见明显异常"
 }
 ```
@@ -215,7 +224,11 @@ VLM Adapter 负责调用 VLM 或 mock VLM，并输出视觉初判。
 
 - `advice` 必须保留。
 - `description` 必须保留，不改名。
-- `page_type` 应遵循 `specs/12-page-type-spec.md` 中的枚举；`risk_behavior`、`advice` 应遵循线上审核 prompt 中的枚举。
+- `page_type` 应遵循 `specs/12-page-type-spec.md` 中的枚举。
+- `risk_behavior` 必须是对象，不再使用数组。
+- `visual_signals` 必须是对象，只记录截图中可见事实。
+- `risk_behavior` 和 `visual_signals` 字段应遵循 `change.md` 已定义字段；`payment` 当前字段待补充，可输出空对象。
+- `advice` 应遵循线上审核 prompt 中的枚举。
 - VLM 只能基于截图可见内容判断，不使用 URL、客户等级或平台字段。
 - VLM 失败时不得默认 `pass`，应进入 `need_preview` 或错误复核路径。
 
@@ -620,6 +633,7 @@ raw_platform_payload
 vlm_result.advice
 vlm_result.page_type
 vlm_result.risk_behavior
+vlm_result.visual_signals
 vlm_result.description
 
 has_url
@@ -668,7 +682,7 @@ mock 策略：
 
 - 从固定 JSON 样例读取。
 - 或根据测试 case 返回预设 VLM 结果。
-- 输出严格符合 `advice`、`page_type`、`risk_behavior`、`description`。
+- 输出严格符合 `advice`、`page_type`、`risk_behavior`、`visual_signals`、`description`。
 
 替换真实接口时：
 
@@ -794,7 +808,9 @@ auto_freeze
 - 所有核心输入输出必须 Pydantic 化。
 - 枚举字段必须限制取值。
 - `final_action` 必须限制为 `block`、`need_preview`、`pass`。
-- VLM 字段必须保持 `advice`、`page_type`、`risk_behavior`、`description`。
+- VLM 字段必须保持 `advice`、`page_type`、`risk_behavior`、`visual_signals`、`description`。
+- `risk_behavior` 必须是对象，不得使用旧数组结构。
+- `visual_signals` 必须是对象，不得输出为数组或自由文本。
 - 空平台字段必须被显式表示，不允许隐式丢失。
 
 ### 14.2 可观测性要求
@@ -863,20 +879,26 @@ MVP 输出建议如下：
 {
   "case_id": "string",
   "vlm_result": {
-    "advice": "fake",
-    "page_type": "login_auth",
-    "risk_behavior": [
-      "credential_collection",
-      "private_contact_inducement"
-    ],
+    "advice": "finance",
+    "page_type": "login",
+    "risk_behavior": {
+      "restricted_access_registration": true,
+      "customer_service_assisted_login": true
+    },
+    "visual_signals": {
+      "customer_service_entry": true,
+      "invitation_code_required": true,
+      "guest_access_entry": false,
+      "public_registration_entry": false
+    },
     "description": "登录页要求邀请码\\n客服入口突出"
   },
-  "final_advice": "fake",
+  "final_advice": "finance",
   "final_action": "need_preview",
   "risk_level": "medium",
   "confidence": "low",
   "evidence_level": "weak",
-  "agent_reason": "该页面缺少明确违规证据，但登录认证页出现邀请码和客服入口，符合疑似诈骗登录页弱信号组合，建议人工复核。",
+  "agent_reason": "该页面缺少明确违规证据，但登录页出现邀请码和客服入口，符合疑似封闭注册或客服辅助登录弱信号组合，建议人工复核。",
   "decisive_evidence": [],
   "weak_signals": [
     "登录页要求邀请码",

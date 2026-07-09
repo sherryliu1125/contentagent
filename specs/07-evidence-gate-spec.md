@@ -33,6 +33,8 @@ Evidence Gate 是 `final_action` 的最终约束层。它接收 Rule Engine 和 
 | `need_preview` | 可由 weak signal、关键节点失败、证据不足触发 |
 | `pass` | 无明确违规，且无显著弱信号，或保护因子成立 |
 
+`Evidence Gate` 不直接解释 `risk_behavior` 或 `visual_signals` 的业务含义；这些含义必须先由 Rule Engine 转换为 hard / weak / protective 命中。Evidence Gate 只负责执行最终证据门槛。
+
 ## 5. 修正规则
 
 | Agent 候选 | 证据状态 | 最终动作 |
@@ -88,3 +90,13 @@ if rule.has_explicit_violation:
 - `agent_pass_upgraded_to_block_due_to_hard_rule`
 - `vlm_failure_forced_need_preview`
 
+## 9. page_type 字段约束
+
+当 VLM 输出出现以下问题时，Evidence Gate 不得默认 `pass`：
+
+- `page_type` 不在 `change.md` 允许枚举内。
+- `risk_behavior` 不是对象。
+- `visual_signals` 不是对象。
+- 关键布尔字段无法判断且 Rule Engine 已记录 schema warning。
+
+这些情况通常应输出 `need_preview`，除非输入结构化失败需要返回 `final_action=None`。

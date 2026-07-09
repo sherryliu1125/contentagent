@@ -19,6 +19,9 @@
 - `final_action` 只可能是 `block`、`need_preview`、`pass`。
 - 结构化失败时 `final_action=None`。
 - `vlm_result.advice` 原样保留。
+- `vlm_result.page_type` 只使用 `change.md` 允许枚举。
+- `vlm_result.risk_behavior` 是对象，不是数组。
+- `vlm_result.visual_signals` 是对象。
 - Agent 不覆盖 VLM 原始字段。
 - Evidence Gate 是最终动作来源。
 - 只有 weak signal 时不得输出 `block`。
@@ -34,8 +37,8 @@
 | TC02 | 纯图片明确违规 | 图片后缀，VLM porn/gamble | `block` |
 | TC03 | v4/v5 中国站客户弱风险 | v4 + CN，登录页弱信号，无硬规则 | `pass` |
 | TC04 | v4/v5 中国站客户明确违规 | v5 + CN，VLM gamble | `block` |
-| TC05 | 登录页弱信号 | login_auth，邀请码，客服入口 | `need_preview` |
-| TC06 | 下载页弱信号 | download_install，诱导安装，无明确违规 | `need_preview` |
+| TC05 | 登录页弱信号 | login，邀请码，客服入口 | `need_preview` |
+| TC06 | 商城交易弱信号 | mall，商品交易入口，品牌可见 | `need_preview` |
 | TC07 | 明确赌博 | VLM gamble，博彩诱导 | `block` |
 | TC08 | 明确色情 | VLM porn，成人诱导 | `block` |
 | TC09 | VLM 失败 | VLM adapter 抛异常 | `need_preview` |
@@ -45,6 +48,11 @@
 | TC13 | 证据不足 block | Agent 候选 block，只有 weak signals | 降为 `need_preview` |
 | TC14 | 明确违规被 Agent pass | hard_rule_hits 非空，Agent pass | 改为 `block` |
 | TC15 | 输入缺 URL | url 为空 | `structured_failed` |
+| TC16 | VLM 旧 risk_behavior 数组 | `risk_behavior=[]` | `need_preview` 并 warning |
+| TC17 | 虚拟币中文站 | crypto，virtual_currency_trading，中文或语言切换 | `block` 或 `need_preview`，按规则强度 |
+| TC18 | 刷单垫付 | rebate，advance_payment_or_deposit，充值/垫付可见 | `block` 或 `need_preview`，按规则强度 |
+| TC19 | 数字商品售卖 VPN | digital_goods，vpn_or_proxy_service_visible | final_advice=`vpn`，动作按证据门槛 |
+| TC20 | payment 字段待补充 | payment，risk_behavior/visual_signals 空对象 | 不因字段缺失失败 |
 
 ## 4. 回归测试要求
 
@@ -65,4 +73,3 @@ MVP 最小验收：
 - 审计日志每条 case 可回放。
 - Evidence Gate 冲突修正测试通过。
 - VLM 失败、Agent 非法、平台缺失三类降级路径通过。
-

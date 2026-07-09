@@ -76,6 +76,9 @@ class ReviewState(BaseModel):
 
 ```text
 vlm_result.advice
+vlm_result.page_type
+vlm_result.risk_behavior
+vlm_result.visual_signals
 agent_decision.final_action_candidate
 evidence_result.final_action
 output.final_action
@@ -87,3 +90,25 @@ output.final_action
 - Output Builder 直接读取 Agent 候选动作作为最终动作。
 - Evidence Builder 删除或重写 VLM 原始字段。
 
+## 7. page_type 字段结构
+
+`vlm_result` 中的页面字段必须按 `change.md` 的结构保存：
+
+```json
+{
+  "page_type": "investment",
+  "risk_behavior": {
+    "trading": true,
+    "fund_operation": true,
+    "login&register": true,
+    "open_account": false
+  },
+  "visual_signals": {
+    "institutional_branding": true,
+    "customer_service_entry": true,
+    "invitation_code_required": false
+  }
+}
+```
+
+`risk_behavior` 和 `visual_signals` 不在 `ReviewState` 中拆成独立顶层字段，避免事实来源分裂。Rule Engine、Agent Decision 和 Audit Logger 均从 `vlm_result` 读取这些字段。

@@ -15,6 +15,8 @@
 | 输入缺 URL | `errors` | 否 | `None` |
 | 输入缺 image | `errors` | 否 | `None` |
 | VLM mock 非法结构 | `warnings` | 是 | `need_preview` |
+| VLM page_type 非法 | `warnings` | 是 | `need_preview` |
+| VLM risk_behavior / visual_signals 非对象 | `warnings` | 是 | `need_preview` |
 | VLM 调用失败 | `warnings` | 是 | `need_preview` |
 | URL 解析失败 | `warnings` | 是 | 通常 `need_preview` |
 | 平台字段缺失 | `warnings` | 是 | 按证据门槛 |
@@ -51,6 +53,13 @@
 - Rule Engine 使用 URL 和平台上下文。
 - Evidence Gate 默认转 `need_preview`，除非输入结构化失败。
 
+VLM schema 非法同样按降级处理：
+
+- `page_type` 不在 `change.md` 允许枚举内。
+- `risk_behavior` 不是对象。
+- `visual_signals` 不是对象。
+- 输出旧数组结构但 adapter 未显式转换。
+
 ## 5. Rule Engine fallback
 
 ```json
@@ -80,4 +89,3 @@ Agent 输出非法时：
 ```text
 gate_corrections
 ```
-

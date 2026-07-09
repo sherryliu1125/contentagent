@@ -62,7 +62,10 @@ MVP 不做：
 | 约束 | 说明 |
 | --- | --- |
 | final_action 三值 | 只能是 `block`、`need_preview`、`pass` |
-| VLM 原始字段保留 | 必须保留 `advice`、`page_type`、`risk_behavior`、`description` |
+| VLM 原始字段保留 | 必须保留 `advice`、`page_type`、`risk_behavior`、`visual_signals`、`description` |
+| page_type 枚举 | 当前只使用 `change.md` 定义的 10 个 page type |
+| risk_behavior 结构 | 必须是对象，不再使用数组 |
+| visual_signals 结构 | 必须是对象，只记录可见视觉事实 |
 | VLM 与 Agent 分离 | `vlm_result.advice` 不得被 Agent 覆盖 |
 | Agent 只是候选 | Agent 输出 `final_action_candidate`，最终动作由 Evidence Gate 约束 |
 | 不编造平台字段 | 平台字段缺失必须显式记录，Agent 不得补造 |
@@ -86,6 +89,8 @@ MVP 不做：
 | Audit Logger Spec | `specs/08-audit-logger-spec.md` | 审计字段、版本、回放策略、敏感字段 |
 | Error Handling Spec | `specs/09-error-handling-spec.md` | 异常处理矩阵和 final_action 策略 |
 | Test Spec | `specs/10-test-spec.md` | 单元、节点、workflow、回归 case 测试 |
+| Visual Signals Spec | `specs/11-visual-signals-spec.md` | `change.md` 已定义的视觉信号字段和消费方式 |
+| Page Type Spec | `specs/12-page-type-spec.md` | `page_type` 枚举、旧值替换和字段边界 |
 
 ## 6. 推荐实现目录
 
@@ -124,5 +129,5 @@ tests/
 2. `specs/01-interface-spec.md`：确认数据契约。
 3. `specs/03-langgraph-workflow-spec.md`：确认流程和异常路径。
 4. `specs/07-evidence-gate-spec.md`：确认最终动作门槛。
-5. `specs/10-test-spec.md`：确认是否可验收。
-
+5. `specs/11-visual-signals-spec.md` 和 `specs/12-page-type-spec.md`：确认 page type 字段口径。
+6. `specs/10-test-spec.md`：确认是否可验收。

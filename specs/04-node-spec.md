@@ -20,18 +20,28 @@
 | 输出 | `vlm_result` |
 | 核心逻辑 | 按 case_id 查 mock，未命中返回低风险 mock |
 | 异常 | mock schema 非法则 `vlm_result=None` 并 warning |
-| 测试 | VLM 四字段保留、非法 advice、risk_behavior 长度 |
+| 测试 | VLM 五字段保留、非法 advice、非法 page_type、risk_behavior/visual_signals 非对象 |
 
 默认 mock：
 
 ```json
 {
   "advice": "good",
-  "page_type": "other_unknown",
-  "risk_behavior": [],
+  "page_type": "mall",
+  "risk_behavior": {
+    "mall_transaction": false
+  },
+  "visual_signals": {
+    "mall_brand_visible": false,
+    "visible_brand_names": [],
+    "product_info_visible": false,
+    "transaction_entry_visible": false
+  },
   "description": "未见明显异常"
 }
 ```
+
+默认 mock 仅用于结构示例。真实 mock case 应按截图页面主体选择 `change.md` 中允许的 `page_type`；无法归类时走 VLM schema warning / degrade 路径，不输出旧的 `other_unknown`。
 
 ## 3. URL / Resource Classifier Node
 
@@ -62,7 +72,7 @@
 | 目标 | 输出规则命中和风险等级 |
 | 输入 | `vlm_result`、`url_classification`、`platform_context` |
 | 输出 | `rule_result` |
-| 核心逻辑 | 硬规则、弱信号、保护因子、风险分 |
+| 核心逻辑 | 基于 `page_type + risk_behavior + visual_signals + URL + platform_context` 识别硬规则、弱信号、保护因子、风险分 |
 | 异常 | 异常时 fallback 到 `need_preview` 弱信号 |
 | 测试 | 明确违规、弱信号、保护因子不覆盖明确违规 |
 
@@ -109,4 +119,3 @@
 | 核心逻辑 | 正常输出 Evidence Gate 结果，结构化失败输出错误 |
 | 异常 | 输出构造失败返回最小结构化错误 |
 | 测试 | final_action 来源、结构化失败、warnings/errors 透传 |
-
