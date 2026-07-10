@@ -47,7 +47,7 @@ Current allowed `page_type` values:
   "risk_behavior": {
     "trading": true,
     "fund_operation": true,
-    "login&register": true,
+    "login_register_entry": true,
     "open_account": false
   },
   "visual_signals": {
@@ -76,7 +76,7 @@ Whether the page shows trading, market quotes, prices, yield, status such as "tr
 
 Whether the page shows fund-related operations, such as deposit, recharge, withdrawal, buy, subscribe, wallet, assets, balance, or holdings.
 
-`login&register`
+`login_register_entry`
 
 Whether the page shows login or registration entry, such as login button, register button, account input, phone number input, password input, or similar account access elements.
 
@@ -119,7 +119,7 @@ AND visual_signals.institutional_branding = true
 
 ```text
 page_type = investment
-AND risk_behavior.login&register = true
+AND risk_behavior.login_register_entry = true
 AND visual_signals.customer_service_entry = true
 AND visual_signals.institutional_branding = true
 => finance
@@ -129,7 +129,7 @@ AND visual_signals.institutional_branding = true
 page_type = investment
 AND visual_signals.invitation_code_required = true
 AND (
-  risk_behavior.login&register = true
+  risk_behavior.login_register_entry = true
   OR risk_behavior.open_account = true
 )
 => finance
@@ -147,10 +147,10 @@ AND (
   },
   "visual_signals": {
     "mall_brand_visible": true,
-    "visible_brand_names": [],
     "product_info_visible": true,
     "transaction_entry_visible": true
-  }
+  },
+  "visible_brand_names": []
 }
 ```
 
@@ -176,7 +176,7 @@ Whether the page visibly shows a mall, store, platform, brand, logo, trademark, 
 
 This field only records visible brand or platform presentation. It does not determine whether the brand is impersonated.
 
-`visible_brand_names`
+#### visible_brand_names
 
 The readable brand, platform, mall, or store names visible in the screenshot.
 
