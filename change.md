@@ -32,6 +32,10 @@ Current allowed `page_type` values:
 - `vpn`
 - `porn`
 - `gambling`
+- `game`
+- `politic`
+- `general`
+- `other`
 
 ## Page Type: investment
 
@@ -985,5 +989,295 @@ hard gambling evidence
 AND visual_signals.primary_language_chinese = false
 AND visual_signals.language_switch_entry = false
 AND platform_context.site_region is Brazil, South Africa, or another regulated gambling market
+=> final_action = need_preview
+```
+
+## Page Type: game
+
+### Draft Field Structure
+
+This is a transition draft for VLM testing.
+
+```json
+{
+  "page_type": "game",
+  "risk_behavior": {
+    "game_play_or_promotion": true,
+    "private_server_or_cheat": true
+  },
+  "visual_signals": {
+    "game_content_visible": true,
+    "private_server_text_visible": true,
+    "cheat_tool_visible": true,
+    "game_account_or_item_trade_visible": true
+  }
+}
+```
+
+### Field Meaning
+
+#### page_type
+
+`game`
+
+The page subject is ordinary games, mobile games, web games, game promotion, game download, game play, game private servers, game cheats, game plugins, game acceleration tools, or similar game-related content.
+
+If the page clearly shows gambling economic systems, betting, casino, lottery, odds, recharge/withdrawal cashout, points up/down, or gambling slang, use `page_type = gambling` or keep the visible gambling signals for Rule Engine escalation.
+
+#### risk_behavior
+
+`game_play_or_promotion`
+
+Whether the page shows or guides ordinary game play, game download, game promotion, game registration, game lobby, game task, or game participation.
+
+`private_server_or_cheat`
+
+Whether the page shows or guides private server, unauthorized server, cheat, plugin, hack, modifier, script, accelerator abuse, or similar game-violation behavior.
+
+#### visual_signals
+
+`game_content_visible`
+
+Whether the page visibly shows game title, game character, game UI, game lobby, gameplay screenshot, download button, start game button, or game promotion content.
+
+`private_server_text_visible`
+
+Whether the page visibly shows private server, 私服, 变态服, GM服, 公益服, 怀旧服, unauthorized server, or similar private-server text.
+
+`cheat_tool_visible`
+
+Whether the page visibly shows cheat, plugin, hack, modifier, script, 辅助, 外挂, 自动脚本, 透视, 加速, or similar cheat/tool text or UI.
+
+`game_account_or_item_trade_visible`
+
+Whether the page visibly shows game account, item, equipment, currency, recharge card,代练,陪玩, or similar game goods/service trading. This signal alone does not determine final advice; Rule Engine should decide whether it belongs to `digital_goods`, `game`, or other risk.
+
+### Rule Direction
+
+```text
+page_type = game
+AND visual_signals.private_server_text_visible = true
+=> final_advice = game
+```
+
+```text
+page_type = game
+AND visual_signals.cheat_tool_visible = true
+=> final_advice = game
+```
+
+```text
+page_type = game
+AND visual_signals.game_content_visible = true
+AND no private server, no cheat, no gambling, no cashout/betting evidence
+=> not hard violation
+```
+
+## Page Type: politic
+
+### Draft Field Structure
+
+This is a transition draft for VLM testing.
+
+```json
+{
+  "page_type": "politic",
+  "risk_behavior": {
+    "political_sensitive_content": true,
+    "terrorism_or_separatism_content": true
+  },
+  "visual_signals": {
+    "china_political_sensitive_visible": true,
+    "military_or_police_sensitive_visible": true,
+    "terrorism_or_extremism_visible": true,
+    "separatism_symbol_visible": true
+  }
+}
+```
+
+### Field Meaning
+
+#### page_type
+
+`politic`
+
+The page subject is China political sensitive content, military/police sensitive content, international terrorism, extremism, separatism, or related political risk content.
+
+#### risk_behavior
+
+`political_sensitive_content`
+
+Whether the page shows or promotes political sensitive content, especially China-related political sensitive content, leaders, party/state organs, slogans, protests, petitions, political attacks, military/police sensitive content, or related content.
+
+`terrorism_or_separatism_content`
+
+Whether the page shows or promotes terrorism, extremism, violent organization, separatism, national split, terrorist symbols, extremist propaganda, or related content.
+
+#### visual_signals
+
+`china_political_sensitive_visible`
+
+Whether the page visibly shows China political sensitive names, slogans, leaders, party/state organs, protest/petition content, political attack text, or related visuals.
+
+`military_or_police_sensitive_visible`
+
+Whether the page visibly shows military, police, weapons, uniforms, official insignia, troops, armed action, military/police sensitive text, or related visuals in a sensitive political context.
+
+`terrorism_or_extremism_visible`
+
+Whether the page visibly shows terrorism, extremist organization, violent extremist propaganda, terrorist flags, weapons with terror context, execution/attack propaganda, or related content.
+
+`separatism_symbol_visible`
+
+Whether the page visibly shows separatist slogans, flags, maps, symbols, independence claims, national split content, or related visuals.
+
+### Rule Direction
+
+```text
+page_type = politic
+AND (
+  risk_behavior.political_sensitive_content = true
+  OR risk_behavior.terrorism_or_separatism_content = true
+)
+=> final_advice = politic
+```
+
+## Page Type: general
+
+### Draft Field Structure
+
+This is a transition draft for VLM testing. `general` is the default container for safe or ordinary pages outside current risk scenarios.
+
+```json
+{
+  "page_type": "general",
+  "risk_behavior": {
+    "ordinary_information_or_service": true
+  },
+  "visual_signals": {
+    "ordinary_content_visible": true,
+    "ordinary_game_or_sports_visible": true,
+    "ordinary_brand_or_corporate_visible": true,
+    "education_news_tool_visible": true
+  }
+}
+```
+
+### Field Meaning
+
+#### page_type
+
+`general`
+
+The page subject is ordinary, safe, or currently unsupported non-risk content, such as news, articles, education, tools, corporate websites, brand display, normal product/service introduction without transaction risk, normal social content, normal sports information, or ordinary game entertainment without private server/cheat/gambling evidence.
+
+Use `general` when the page does not fit the existing risk page types and there is no clear suspicious or violating scenario. This page type is mainly for `good/pass` fallback after Rule Engine checks.
+
+#### risk_behavior
+
+`ordinary_information_or_service`
+
+Whether the page shows ordinary information browsing, normal brand/service introduction, education, news, tool usage, entertainment browsing, or similar non-risk activity.
+
+#### visual_signals
+
+`ordinary_content_visible`
+
+Whether the page visibly shows ordinary content such as article text, news content, navigation, profile, informational page, gallery, community post, or normal website layout.
+
+`ordinary_game_or_sports_visible`
+
+Whether the page visibly shows ordinary game entertainment or sports information without betting, odds, gambling slang, recharge/withdrawal cashout, private server, or cheat evidence.
+
+`ordinary_brand_or_corporate_visible`
+
+Whether the page visibly shows normal brand, company, product, official-looking corporate site, business introduction, contact/about page, or similar non-risk brand/corporate content.
+
+`education_news_tool_visible`
+
+Whether the page visibly shows education, news, learning, documentation, calculator, editor, utility, productivity tool, or similar ordinary tool/content service.
+
+### Rule Direction
+
+```text
+page_type = general
+AND no high-risk cross-page visual_signals
+=> final_advice = good
+```
+
+```text
+page_type = general
+AND gambling/porn/politic/game/vpn/finance/fake strong signals are visible
+=> Rule Engine should use those signals to correct final_advice or send need_preview
+```
+
+For speed, `general` should not require full extraction of every risk category. In the transition prompt, it should only focus on several false-positive-prone areas:
+
+- ordinary game/sports vs gambling
+- ordinary brand/corporate page vs fake
+- ordinary game page vs private server/cheat
+- ordinary information/tool/news/education page vs unsupported risk
+
+## Page Type: other
+
+### Draft Field Structure
+
+This is a transition draft for VLM testing.
+
+```json
+{
+  "page_type": "other",
+  "risk_behavior": {
+    "unclassified_suspicious_activity": true
+  },
+  "visual_signals": {
+    "unclassified_risk_visible": true,
+    "abnormal_contact_or_redirect_visible": true,
+    "suspicious_service_or_claim_visible": true
+  }
+}
+```
+
+### Field Meaning
+
+#### page_type
+
+`other`
+
+The page appears suspicious, abnormal, violating, or risky, but cannot be clearly classified as mall, payment, rebate, login, investment, crypto, digital_goods, vpn, porn, gambling, game, politic, or general.
+
+Use `other` for risk fallback, not for ordinary safe pages. Safe unsupported pages should use `general`.
+
+#### risk_behavior
+
+`unclassified_suspicious_activity`
+
+Whether the page shows suspicious or abnormal behavior that does not fit existing page types, such as unclear risk service, abnormal solicitation, suspicious recruitment, unexplained high reward, unusual contact guidance, or other unclassified risk activity.
+
+#### visual_signals
+
+`unclassified_risk_visible`
+
+Whether the page visibly shows abnormal, suspicious, or risk-looking content that cannot be assigned to an existing field.
+
+`abnormal_contact_or_redirect_visible`
+
+Whether the page visibly emphasizes unusual contact, QR code, external app redirect, private chat, group join, or off-platform communication in a suspicious context.
+
+`suspicious_service_or_claim_visible`
+
+Whether the page visibly shows suspicious service claims, abnormal guarantees, black/grey market wording, exaggerated promise, or hard-to-classify risk service.
+
+### Rule Direction
+
+```text
+page_type = other
+AND risk_behavior.unclassified_suspicious_activity = true
+=> final_advice = other_fraud or need_preview, depending on evidence strength
+```
+
+```text
+page_type = other
+AND evidence is weak or unclear
 => final_action = need_preview
 ```
