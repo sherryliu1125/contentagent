@@ -765,12 +765,21 @@ AND visual_signals.sexual_service_text_visible = false
   "page_type": "gambling",
   "risk_behavior": {
     "gambling_or_betting": true,
-    "chess_card_gambling": true
+    "lottery_activity": true
   },
   "visual_signals": {
     "gambling_entity_visible": true,
     "gambling_slang_visible": true,
+    "gambling_icon_visible": true,
+    "gambling_entry_visible": true,
+    "lottery_text_visible": true,
+    "prize_draw_visible": true,
     "chess_card_game_visible": true,
+    "fishing_game_visible": true,
+    "electronic_game_visible": true,
+    "sports_content_visible": true,
+    "odds_or_handicap_visible": true,
+    "cash_recharge_or_withdraw_visible": true,
     "casino_or_live_dealer_visible": true,
     "sports_betting_visible": true,
     "lottery_or_draw_visible": true
@@ -784,35 +793,83 @@ AND visual_signals.sexual_service_text_visible = false
 
 `gambling`
 
-The page subject is gambling, betting, chess/card gambling, fishing games, electronic gaming, live dealer casino, sports betting, lottery, draw, casino, odds, or betting platform.
+The page subject is gambling, betting, lottery, draw, chess/card games, fishing games, electronic gaming, live dealer casino, sports, sports betting, casino, odds, or betting platform.
+
+`page_type = gambling` only describes the visible page scenario. It does not mean the final decision must be `gamble`. The rule engine should make the final decision from `risk_behavior + visual_signals + platform_context`.
 
 #### risk_behavior
 
 `gambling_or_betting`
 
-Whether the page shows or guides gambling, betting, wagering, lottery/draw, probability-based rewards, odds, casino bonus, rebate, wagering turnover, first-deposit bonus, guaranteed compensation, or similar gambling economic systems.
+Whether the page shows or guides an obvious gambling economic system, such as betting, wagering, odds, casino bonus, gambling rebate, wagering turnover, first-deposit bonus, guaranteed compensation, live dealer casino, casino games, sports betting entry, or similar betting activity.
 
-`chess_card_gambling`
+This field is for clearly gambling-oriented behavior. It can be triggered by obvious betting text, gambling entities, casino/live dealer content, betting entries, odds/handicap, or other visible gambling economic signals. It should not be triggered by ordinary sports content, ordinary games, chess/card games, fishing games, electronic games, or prize draw visuals alone.
 
-Whether the page shows chess/card gambling or suspected chess/card betting, such as chess/card games, mahjong, poker, Dou Dizhu, Texas Hold'em, Niu Niu, baccarat, Golden Flower, fishing games, or electronic game halls.
+`lottery_activity`
 
-This behavior is kept separately because chess/card gambling is often visually confused with normal games, but should be treated as highly suspicious in this taxonomy.
+Whether the page shows lottery behavior, such as lottery, Mark Six, lottery platform, lottery purchase, lottery numbers, draw results, number betting, or online lottery sales.
+
+Lottery is a hard gambling behavior. Ordinary marketing prize draws, roulette-style promotions, golden egg promotions, scratch cards, or lucky draws are not lottery unless they show lottery sales, number betting, gambling return, cashout, odds, betting, or similar gambling economic signals.
 
 #### visual_signals
 
 `gambling_entity_visible`
 
-Whether the page visibly shows gambling entities, scenes, or platform names, such as gambling, betting, casino, entertainment city, Macau, Grand Lisboa, Galaxy Entertainment, live dealer, sports betting, electronic gaming, or lottery platform.
+Whether the page visibly shows gambling entities, scenes, brands, or platform names, such as gambling, betting, casino, entertainment city, Macau, Grand Lisboa, Galaxy Entertainment, Macau Sands, Wynn Macau, MGM, Suncity Group, Crown Sports, Kaiyuan, live dealer, sports betting, electronic gaming, lottery platform, or similar gambling platform identity.
 
 `gambling_slang_visible`
 
-Whether the page visibly shows gambling slang or betting terms, such as casino bonus, rebate, wagering turnover, first-deposit bonus, guaranteed compensation, bet, wager, odds, banker/player, points up/down, rolling commission, or prize return.
+Whether the page visibly shows gambling text, slang, or betting terms, such as casino bonus, rebate, wagering turnover, first-deposit bonus, guaranteed compensation, bet, wager, odds, handicap, banker/player, points up/down, rolling commission, prize return, line check, line entry, or gambling promotional slogans.
 
-Chinese examples include: 彩金、返水、反水、流水、首存赠送、包赔、投注、下注、赔率、庄闲、上分、下分、洗码、返奖.
+Chinese examples include: 六合彩、线上博彩、线上赌场、彩金、返水、反水、流水、首存赠送、注册送28元、包赔、投注、下注、赔率、盘口、水位、庄闲、上分、下分、洗码、返奖、真人视讯、线路检测、线路入口、娱乐是一种态度.
+
+`gambling_icon_visible`
+
+Whether the page visibly shows gambling-oriented icons or visual symbols, such as casino chips, playing-card betting icons, dice, roulette, slot machine icons, dealer avatars, Macau casino icons, betting ticket icons, lottery-ball icons, or sportsbook betting icons.
+
+`gambling_entry_visible`
+
+Whether the page visibly shows a gambling entry, such as enter casino, enter lobby, bet now, start betting, sports betting entry, live dealer entry, lottery entry, line entry, line check, register to receive casino bonus, first-deposit bonus entry, or similar call-to-action.
+
+`lottery_text_visible`
+
+Whether the page visibly shows lottery-specific text or numbers, such as lottery, Mark Six, lottery platform, lottery purchase, lottery numbers, draw results, number betting, or online lottery sales.
+
+`prize_draw_visible`
+
+Whether the page visibly shows ordinary prize draw visuals or text, such as roulette draw, golden egg draw, scratch card, lucky draw, spin wheel, lottery-style marketing promotion, or probability reward.
 
 `chess_card_game_visible`
 
-Whether the page visibly shows chess/card/fishing/electronic gaming elements or text, such as chess/card games, mahjong, poker, Dou Dizhu, Texas Hold'em, Niu Niu, baccarat, Golden Flower, fishing games, electronic game halls, or slot machines.
+Whether the page visibly shows chess/card game elements or text, such as chess/card games, mahjong, poker, Dou Dizhu, Texas Hold'em, Niu Niu, baccarat, Golden Flower, or similar card/table games.
+
+This is a visual fact only. It should be combined with gambling text, betting entry, cash recharge/withdrawal, or other gambling evidence before deciding `final_advice = gamble`.
+
+`sports_content_visible`
+
+Whether the page visibly shows sports content, such as football, basketball, World Cup, sports teams, match schedules, scoreboards, sports news, match banners, or player/team visuals.
+
+This is a visual fact only. It should be combined with odds, handicap, betting entry, or gambling text before deciding `final_advice = gamble`.
+
+`fishing_game_visible`
+
+Whether the page visibly shows fishing game visuals or text.
+
+This is a visual fact only. It should be combined with gambling text, betting entry, cash recharge/withdrawal, or other gambling evidence before deciding `final_advice = gamble`.
+
+`electronic_game_visible`
+
+Whether the page visibly shows electronic game hall, slot-machine-style game, arcade game, or electronic entertainment visuals/text.
+
+This is a visual fact only. It should be combined with gambling text, betting entry, cash recharge/withdrawal, or other gambling evidence before deciding `final_advice = gamble`.
+
+`odds_or_handicap_visible`
+
+Whether the page visibly shows odds, handicap, water level, betting lines, match odds, point spread, over/under, parlay, or similar sports/betting odds information.
+
+`cash_recharge_or_withdraw_visible`
+
+Whether the page visibly shows recharge, deposit, withdrawal, cashout, wallet, balance, cash exchange, points up/down, buy chips, or other money-in/money-out entries.
 
 `casino_or_live_dealer_visible`
 
@@ -824,11 +881,17 @@ Whether the page visibly shows sports betting, sports wager, odds board, match b
 
 `lottery_or_draw_visible`
 
-Whether the page visibly shows lottery, draw, winning numbers, roulette draw, golden egg draw, scratch card, lucky draw, prize return, or similar probability-based draw/betting activity.
+Whether the page visibly shows lottery or draw evidence.
+
+Lottery examples include: lottery, Mark Six, lottery platform, lottery purchase, lottery numbers, draw results, number betting, online lottery sales.
+
+Prize draw examples include: roulette draw, golden egg draw, scratch card, lucky draw, prize return, or similar probability-based draw/promotion activity. These should be treated as `visual_signals.prize_draw_visible`, not `risk_behavior.lottery_activity`, unless lottery sales, number betting, gambling return, cashout, odds, betting, or similar gambling economic signals are visible.
 
 ### Rule Direction
 
-Gambling hard signals override finance and fake. If gambling hard signals are visible, the rule engine should output `final_advice = gamble` even when the page also shows cash reward, rebate, investment, financial return, official branding, or impersonation.
+Gambling hard signals override finance and fake. If hard gambling behavior and evidence are visible, the rule engine should output `final_advice = gamble` even when the page also shows cash reward, rebate, investment, financial return, official branding, or impersonation.
+
+VLM should extract visible facts into `risk_behavior` and `visual_signals`; Rule Engine is responsible for the final `final_advice` and `final_action`.
 
 Example rule patterns:
 
@@ -839,20 +902,88 @@ AND risk_behavior.gambling_or_betting = true
 ```
 
 ```text
-risk_behavior.chess_card_gambling = true
-AND visual_signals.chess_card_game_visible = true
+risk_behavior.lottery_activity = true
+AND visual_signals.lottery_text_visible = true
 => final_advice = gamble
 ```
 
 ```text
-visual_signals.gambling_slang_visible = true
+visual_signals.chess_card_game_visible = true
+AND (
+  visual_signals.cash_recharge_or_withdraw_visible = true
+  OR visual_signals.gambling_slang_visible = true
+  OR visual_signals.gambling_entry_visible = true
+  OR visual_signals.odds_or_handicap_visible = true
+)
+=> final_advice = gamble
+```
+
+```text
+visual_signals.sports_content_visible = true
+AND (
+  visual_signals.sports_betting_visible = true
+  OR visual_signals.odds_or_handicap_visible = true
+  OR visual_signals.gambling_slang_visible = true
+  OR visual_signals.gambling_entry_visible = true
+)
+=> final_advice = gamble
+```
+
+```text
+visual_signals.fishing_game_visible = true
+AND (
+  visual_signals.cash_recharge_or_withdraw_visible = true
+  OR visual_signals.gambling_slang_visible = true
+  OR visual_signals.gambling_entry_visible = true
+)
+=> final_advice = gamble
+```
+
+```text
+visual_signals.electronic_game_visible = true
+AND (
+  visual_signals.cash_recharge_or_withdraw_visible = true
+  OR visual_signals.gambling_slang_visible = true
+  OR visual_signals.gambling_entry_visible = true
+)
 => final_advice = gamble
 ```
 
 ```text
 visual_signals.gambling_entity_visible = true
+OR visual_signals.gambling_icon_visible = true
+OR visual_signals.gambling_entry_visible = true
 OR visual_signals.casino_or_live_dealer_visible = true
-OR visual_signals.sports_betting_visible = true
-OR visual_signals.lottery_or_draw_visible = true
 => final_advice = gamble
+```
+
+```text
+visual_signals.prize_draw_visible = true
+AND (
+  visual_signals.cash_recharge_or_withdraw_visible = true
+  OR visual_signals.gambling_slang_visible = true
+  OR visual_signals.gambling_entry_visible = true
+  OR visual_signals.odds_or_handicap_visible = true
+)
+=> final_advice = gamble or need_preview, depending on evidence strength
+```
+
+```text
+(
+  visual_signals.chess_card_game_visible = true
+  OR visual_signals.sports_content_visible = true
+  OR visual_signals.fishing_game_visible = true
+  OR visual_signals.electronic_game_visible = true
+  OR visual_signals.prize_draw_visible = true
+)
+AND no gambling text, no betting entry, no odds/handicap, no cash recharge/withdrawal
+=> not hard gamble
+```
+
+```text
+hard gambling evidence
+AND visual_signals.primary_language_chinese = false
+AND visual_signals.language_switch_entry = false
+AND platform_context.site_region is Brazil, South Africa, or another regulated gambling market
+=> final_action = need_preview
 ```

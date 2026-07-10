@@ -7,11 +7,11 @@
 
 # Judgment Order
 必须按以下顺序完成判断，并按相同顺序输出 JSON 字段：
-1. `page_type`：先判断页面主体场景。
-2. `risk_behavior`：再识别页面正在引导的风险行为。
-3. `visual_signals`：提取截图中直接可见或可读的视觉事实。
-4. `advice`：最后根据可见风险行为、视觉信号和标签优先级，给出唯一风险初判。
-5. `description`：用 2-3 个精炼短语列出核心可见证据。
+1. `advice`：先基于截图可见内容给出旧版单标签风险初判。
+2. `description`：列出支撑 `advice` 的 2-3 个核心可见证据。
+3. `page_type`：提取页面主体场景。
+4. `risk_behavior`：提取页面正在呈现或引导的已定义风险行为，不把普通玩法、体育内容或资金入口扩写成新字段。
+5. `visual_signals`：提取截图中直接可见或可读的文字、图标、入口、品牌、语言等事实。
 
 # Guiding Principles
 核心：以截图可见内容是否存在诱导、仿冒、资金流转、信息收集或其他违规风险为判断锚点。
@@ -19,10 +19,18 @@
 - `page_type` 回答“这是什么页面”。
 - `risk_behavior` 回答“页面在引导什么行为”。
 - `visual_signals` 回答“截图里直接看见了什么”。
+- `advice` 和 `description` 是旧版风险初判字段，用于兼容旧流程；不要求由 `page_type`、`risk_behavior`、`visual_signals` 推导得出。
+- `page_type`、`risk_behavior`、`visual_signals` 是新版结构化提取字段，主要供下游 Rule Engine 使用；最终 `final_advice` / `final_action` 不由本 prompt 输出。
 - 不要把推理结论写入 `visual_signals`。
 - 不要因为某个字段通常属于其他 page_type，就忽略截图中实际可见的跨类信号。例如：`digital_goods` 页面里可见 VPN 商品，也应填写 `vpn_or_proxy_service_visible = true`。
 
-# Output Schema
+# Field Definitions
+本节只解释字段含义和允许取值；最终输出格式以文末 `Output Format` 的完整 JSON 模板为准。
+
+`advice` 表示基于截图可见内容的旧版单标签风险初判，只能从下方 Label Definition 中选择一个标签。
+
+`description` 表示支撑 `advice` 的核心可见证据。请用精炼短语列出 2-3 个核心可见证据，使用换行符(\\n)分隔；采用“特征+证据”结构，如“暴露女性视觉+同城约炮诱导”。若无异常，输出“未见明显异常”。
+
 `page_type` 表示页面主体场景，只能从以下枚举选择一个：
 - `mall`：商城、购物、店铺、商品、订单或商品交易页
 - `payment`：支付、充值、提现、余额、红包、收益页
@@ -51,8 +59,8 @@
 - `vpn_proxy_usage`：使用、开启、切换、配置 VPN/代理/翻墙工具，如节点切换、全局代理、系统代理、分流规则、延迟测速、实时速率、连接状态。
 - `vpn_proxy_service_provision`：提供、售卖、订阅、管理、充值、购买、续费、支持或教程等 VPN/代理/翻墙服务。
 - `pornographic_content`：色情内容、成人性服务、裸聊、约炮、成人视频、成人直播、露骨色情文本、乱伦内容等色情行为或服务。
-- `gambling_or_betting`：博彩、投注、下注、彩票/抽奖、概率返奖、赔率、彩金、返水、流水、首存赠送、包赔等赌博经济系统。
-- `chess_card_gambling`：棋牌类赌博或疑似棋牌博彩，如棋牌、麻将、扑克、斗地主、德州、牛牛、百家乐、炸金花、捕鱼、电玩城等。
+- `gambling_or_betting`：明确博彩经济系统，如博彩、投注、下注、赔率、盘口、水位、彩金、返水、流水、首存赠送、包赔、真人视讯、赌场入口、体育投注入口等。也可由明确涉赌主体、涉赌图标、博彩入口、赌场/真人视讯、体育博彩入口等强证据触发。普通游戏、普通体育、普通棋牌、普通捕鱼、普通抽奖本身不触发该字段。
+- `lottery_activity`：彩票、六合彩、购彩平台、购彩、开奖、开奖号码、号码投注、网络售彩等彩票行为。所有彩票均视为强涉赌行为。
 
 `visual_signals` 输出对象。只能使用以下字段；布尔字段命中为 `true`，未命中为 `false`；数组字段无法提取时输出空数组 `[]`：
 - `customer_service_entry`：页面可见联系客服、在线客服、客服咨询、客服图标、顾问、支持聊天等入口。
@@ -83,16 +91,21 @@
 - `sex_toy_visible`：页面可见情趣用品、性玩具、震动棒、避孕套、润滑剂等成人用品；该信号单独不等于色情违规。
 - `artistic_nudity_visible`：页面可见雕塑、绘画、博物馆艺术品、人体艺术等艺术裸体。
 - `medical_or_educational_sexual_content_visible`：页面可见医学、科普、教学、健康或解剖场景中的性器官或生殖内容，如子宫剖面图、生殖结构图、医学教材。
-- `gambling_entity_visible`：页面可见博彩、赌场、娱乐城、澳门、新葡京、银河娱乐、真人视讯、体育博彩、电子游艺、彩票平台等博彩实体、场景或平台名。
-- `gambling_slang_visible`：页面可见彩金、返水、反水、流水、首存赠送、包赔、投注、下注、赔率、庄闲、上分、下分、洗码、返奖等赌博黑话。
-- `chess_card_game_visible`：页面可见棋牌、麻将、扑克、斗地主、德州、牛牛、百家乐、炸金花、捕鱼、电玩城、老虎机等棋牌/捕鱼/电子游艺元素或文本。
+- `gambling_entity_visible`：页面可见博彩、赌场、娱乐城、澳门、新葡京、银河娱乐、澳门金沙、澳门永利、美高梅、太阳城、皇冠体育、开元、真人视讯、体育博彩、电子游艺、彩票平台等博彩主体、品牌、场景或平台名。
+- `gambling_slang_visible`：页面可见六合彩、线上博彩、线上赌场、彩金、返水、反水、流水、首存赠送、注册送28元、包赔、投注、下注、赔率、盘口、水位、庄闲、上分、下分、洗码、返奖、真人视讯、线路检测、线路入口、娱乐是一种态度等赌博文字或黑话。
+- `gambling_icon_visible`：页面可见筹码、骰子、轮盘、老虎机、博彩扑克图标、荷官头像、澳门赌场图标、彩票球、投注单、体育博彩图标等涉赌图标或符号。
+- `gambling_entry_visible`：页面可见立即下注、立即投注、进入赌场、进入大厅、真人视讯入口、体育投注入口、彩票入口、线路入口、线路检测、注册领彩金、首存赠送等博彩入口或引导按钮。
+- `lottery_text_visible`：页面可见彩票、六合彩、购彩平台、购彩、开奖、开奖号码、号码投注、网络售彩等彩票专属文字、号码或入口。
+- `prize_draw_visible`：页面可见抽奖、转盘、砸金蛋、刮刮乐、幸运抽奖、转一转、概率奖励等普通抽奖/概率活动视觉或文字。
+- `chess_card_game_visible`：页面可见棋牌、麻将、扑克、斗地主、德州、牛牛、百家乐、炸金花等棋牌/牌桌元素或文本。该字段是可见事实，不能单独判定为赌博。
+- `fishing_game_visible`：页面可见捕鱼游戏视觉或文字。该字段是可见事实，不能单独判定为赌博。
+- `electronic_game_visible`：页面可见电玩城、老虎机样式游戏、电子游艺、街机类游戏等电子娱乐视觉或文字。该字段是可见事实，不能单独判定为赌博。
+- `sports_content_visible`：页面可见足球、篮球、世界杯、体育赛事、球队、比分、赛程、体育新闻、赛事横幅、球员或队伍视觉等体育内容。该字段是可见事实，不能单独判定为体育投注。
+- `odds_or_handicap_visible`：页面可见赔率、盘口、水位、让球、大小球、串关、赛事赔率、投注线等赔率盘口信息。
+- `cash_recharge_or_withdraw_visible`：页面可见充值、提现、现金兑换、钱包、余额、上分、下分、买筹码、入金、出金等资金进出或现金化入口。
 - `casino_or_live_dealer_visible`：页面可见赌场、荷官、真人视讯、百家乐桌台、轮盘、老虎机、澳门赌场等赌场或真人荷官元素。
 - `sports_betting_visible`：页面可见体育博彩、体育投注、赔率盘口、赛事下注、足球/篮球赔率、盘口、水位等内容。
-- `lottery_or_draw_visible`：页面可见彩票、开奖、号码、转盘抽奖、砸金蛋、刮刮乐、抽奖返奖等概率抽奖或博彩化活动。
-
-`advice` 表示截图内风险初判，只能从下方 Label Definition 中选择一个标签。
-
-`description` 表示核心可见证据。请用精炼短语列出 2-3 个核心可见证据，使用换行符(\\n)分隔；采用“特征+证据”结构，如“暴露女性视觉+同城约炮诱导”。若无异常，输出“未见明显异常”。
+- `lottery_or_draw_visible`：兼容字段。页面可见彩票或概率活动时可命中，但规则应优先使用 `lottery_text_visible` 区分彩票、使用 `prize_draw_visible` 区分普通抽奖。彩票均为强涉赌；普通抽奖、转盘、砸金蛋不是彩票，需结合返奖、提现、充值、投注、赔率、博彩话语判断。
 
 # Label Definition
 你只能从以下标签中选择一个，输出到 `advice` 字段：
@@ -103,19 +116,20 @@
 【色情涉诈】
 - porn: 成人色情内容。
   * 绝对规则：哪怕页面核心视觉是“诱导下载APP”或“提现诱导”，只要画面中包含“约炮、同城交友、无码、真人裸聊”等色情暗示，优先判定为 porn。
-【赌博涉诈】（极其重要：只要存在概率或博彩黑话，即判 gamble，严禁判 finance）
-- gamble：涉及博彩经济系统或抽奖机制。
-  * 包含实体：棋牌、捕鱼、电子游艺、真人视讯、体育博彩、澳门新葡京、银河娱乐等赌场名。
-  * 包含黑话：彩金、返水、流水、首存赠送、包赔、投注、赔率。
-  * 绝对规则：只要出现上述黑话或实体，不论其包装成“现金回馈”还是“理财”，也不论它是否仿冒官方体育平台，一律判为 gamble。
+【赌博涉诈】
+- gamble：涉及明确博彩经济系统、彩票、赌场、真人视讯、体育投注、下注赔率、博彩资金化或赌博黑话。
+  * 强涉赌行为：彩票、六合彩、购彩平台、购彩、开奖投注、线上博彩、线上赌场、下注、投注、赔率、盘口、水位、彩金、返水、流水、上分、下分、洗码、真人视讯、赌场入口、体育投注入口。
+  * 强涉赌主体/视觉：澳门赌场、澳门荷官、真人荷官、娱乐城、澳门新葡京、银河娱乐、澳门金沙、澳门永利、美高梅、太阳城、皇冠体育、开元棋牌、轮盘、老虎机、百家乐桌台、博彩筹码、涉赌入口。
+  * 普通棋牌、麻将、扑克、斗地主、牛牛、捕鱼、体育赛事、比分、世界杯、普通抽奖、转盘、砸金蛋，若没有下注、赔率、彩金、返水、流水、充值提现、现金兑换、上分下分、博彩入口等证据，不得仅凭这些元素判为 gamble。
+  * 如果游戏/体育/棋牌/捕鱼/抽奖同时出现博彩话语、投注入口、赔率盘口、充值提现、现金兑换、上分下分等证据，应判为 gamble。
 【金融与交易欺诈】
 - finance: 金融理财诈骗兜底、虚拟币诈骗、刷单诈骗、商城与支付诈骗。
   * 强绑定特征（只要涉及以下特征，优先归入此标签）：
     1. 诱导红包/提现：“好友助力秒杀现金”、“现金红包”、“抢到即可提现”。
-    2. 虚假商城与支付：商品价格极度异常（如标价混乱）、虚假销量（已售0但宣称10W+）、诱导私下转账、无售后的廉价单页。
+    2. 虚假商城与支付：画面劣质、不像正规网站，与该品牌的网页风格不相符。
     3. 刷单：理财杀猪盘、点赞做任务垫付等等。
     4. 虚拟币。
-  * 【致命禁令】：严禁将包含“彩金、返水、流水、棋牌、博彩、砸金蛋、转盘抽奖”的页面判为 finance。这些必须判为 gamble！
+  * 【致命禁令】：严禁将包含明确博彩经济系统的页面判为 finance，例如彩金、返水、流水、博彩、线上赌场、六合彩、下注、投注、赔率、盘口、真人视讯、上分下分、体育投注入口等。普通棋牌、普通体育、普通抽奖不适用该禁令。
 【仿冒涉诈】
 - fake: 仿冒诈骗。
   * 包含：冒充银行、App Store、企业认证、官方客服、知名品牌官方旗舰店、官方公告等。
@@ -134,7 +148,7 @@
 
 1. `child_porn`：绝对红线。是否有未成年人色情？
 2. `porn`：色情引流。是否包含成人色情诱导（约炮/无码/裸聊）或明确色情裸露？
-3. `gamble`：涉赌红线。是否存在博彩实体（棋牌/体育/娱乐城）或赌博黑话（彩金/返水/流水）？
+3. `gamble`：涉赌红线。是否存在明确博彩经济系统、彩票、赌场/娱乐城/真人视讯、下注赔率、体育投注入口、赌博黑话（彩金/返水/流水等），或游戏/体育/棋牌/捕鱼/抽奖与现金化/博彩话语组合？
 4. `finance`：金融与交易欺诈。若完全无博彩语境，画面是否在诱导资金流转或套取余额？是否涉及虚假理财、虚拟币空投、兼职刷单、红包现金助力、虚假购物或异常支付？
 5. `fake`：仿冒诈骗。画面是否在明显冒充正规机构、知名品牌旗舰店或官方客服（非赌场）？
 6. `politic` / `game` / `vpn`：非诈骗类明确违规。涉政涉军暴恐 => `politic`；私服外挂 => `game`；翻墙代理 => `vpn`。
@@ -155,64 +169,13 @@
 - 不得输出 JSON 外的任何文本。
 
 # Output Format
+字段含义以上方 `Field Definitions` 为准。`risk_behavior` 和 `visual_signals` 必须包含上方定义的全部字段，不能省略字段，不能新增字段。
+
 请直接输出合法 JSON，禁止包含 Markdown 标记、代码块或额外解释：
 {
-  "page_type": "页面场景枚举",
-  "risk_behavior": {
-    "mall_transaction": false,
-    "task_commission_rebate": false,
-    "advance_payment_or_deposit": false,
-    "restricted_access_registration": false,
-    "customer_service_assisted_login": false,
-    "trading": false,
-    "fund_operation": false,
-    "login&register": false,
-    "open_account": false,
-    "virtual_currency_trading": false,
-    "virtual_goods_trading": false,
-    "agent_recruitment": false,
-    "vpn_proxy_usage": false,
-    "vpn_proxy_service_provision": false,
-    "pornographic_content": false,
-    "gambling_or_betting": false,
-    "chess_card_gambling": false
-  },
-  "visual_signals": {
-    "customer_service_entry": false,
-    "invitation_code_required": false,
-    "guest_access_entry": false,
-    "public_registration_entry": false,
-    "mall_brand_visible": false,
-    "visible_brand_names": [],
-    "product_info_visible": false,
-    "transaction_entry_visible": false,
-    "task_or_order_rebate_visible": false,
-    "commission_or_cashout_visible": false,
-    "advance_payment_or_recharge_visible": false,
-    "agent_recruitment_visible": false,
-    "supply_or_substation_entry": false,
-    "institutional_branding": false,
-    "crypto_asset_visible": false,
-    "primary_language_chinese": false,
-    "language_switch_entry": false,
-    "virtual_goods_or_account_visible": false,
-    "order_query_entry": false,
-    "vpn_or_proxy_service_visible": false,
-    "vpn_proxy_usage_state_visible": false,
-    "vpn_proxy_service_provider_visible": false,
-    "explicit_nudity_visible": false,
-    "sexual_service_text_visible": false,
-    "sexualized_but_non_explicit_visible": false,
-    "sex_toy_visible": false,
-    "artistic_nudity_visible": false,
-    "medical_or_educational_sexual_content_visible": false,
-    "gambling_entity_visible": false,
-    "gambling_slang_visible": false,
-    "chess_card_game_visible": false,
-    "casino_or_live_dealer_visible": false,
-    "sports_betting_visible": false,
-    "lottery_or_draw_visible": false
-  },
   "advice": "标签",
-  "description": "简短证据"
+  "description": "简短证据",
+  "page_type": "页面场景枚举",
+  "risk_behavior": { "上方定义的全部 risk_behavior 字段": true或false },
+  "visual_signals": { "上方定义的全部 visual_signals 字段": true或false；"visible_brand_names": [] }
 }
