@@ -666,6 +666,7 @@ AND (
     "explicit_nudity_visible": true,
     "sexual_service_text_visible": true,
     "sexualized_but_non_explicit_visible": false,
+    "minor_sexual_content_visible": false,
     "sex_toy_visible": false,
     "artistic_nudity_visible": false,
     "medical_or_educational_sexual_content_visible": false
@@ -703,6 +704,14 @@ Whether the page visibly shows sexual service or pornographic inducement text, s
 
 Whether the page visibly shows sexy, suggestive, swimsuit, underwear, body display, or soft sexualized content without explicit nudity, explicit sexual acts, or sexual service text.
 
+`minor_sexual_content_visible`
+
+Whether the page shows pornographic, nude, sexual-service, or sexualized content involving clearly underage subjects, children, minors, "幼女", underage/student minor cues, low-age characters, or related text/tags.
+
+This signal is only valid inside a sexual or pornographic context. Ordinary school uniforms, student style, "童颜" styling, or young-looking adults without sexual/pornographic context should not trigger this signal alone. If age is unclear, do not force this signal.
+
+In the v3.6 prompt, this field is named `minor_sexual_content` under `evidence_signals` after removing the `visible` naming convention.
+
 `sex_toy_visible`
 
 Whether the page visibly shows sex toys or adult products, such as vibrators, adult toys, condoms, lubricants, or similar adult goods.
@@ -732,6 +741,22 @@ AND (
   OR visual_signals.sexual_service_text_visible = true
 )
 => final_advice = porn
+```
+
+```text
+page_type = porn
+AND risk_behavior.pornographic_content = true
+AND visual_signals.minor_sexual_content_visible = true
+=> final_advice = child_porn
+```
+
+For v3.6 prompt output:
+
+```text
+page_type = porn
+AND risk_behavior contains pornographic_content
+AND evidence_signals contains minor_sexual_content
+=> final_advice = child_porn
 ```
 
 ```text

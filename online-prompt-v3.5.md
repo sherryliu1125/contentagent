@@ -73,7 +73,7 @@ rh: ordinary_information_or_service
 vs: ordinary_content_visible, ordinary_game_or_sports_visible, ordinary_brand_or_corporate_visible, education_news_tool_visible
 
 other
-rh有的2: 那么unclassified_suspicious_activity
+rh: unclassified_suspicious_activity
 vs: unclassified_risk_visible, abnormal_contact_or_redirect_visible, suspicious_service_or_claim_visible
 
 关键识别提示：
