@@ -34,8 +34,107 @@ Current allowed `page_type` values:
 - `gambling`
 - `game`
 - `politic`
+- `fake`
 - `general`
 - `other`
+
+## Cross-Page Update: fake / brand impersonation
+
+Final decision from the 2026-07-14 review:
+
+- `fake` can be used as an independent `page_type` only when the page is primarily an impersonated official/entity page and cannot be better routed to `mall`, `payment`, `investment`, `login`, `digital_goods`, `politic`, or `other`.
+- For pages with a clear business scenario, keep the scenario page type and add an impersonation risk behavior where applicable.
+- Do not use `general` for suspicious fake/impersonation pages. `general` is reserved for ordinary good pages.
+- Do not ask VLM to verify whether a brand, website, government page, or institution is truly official. VLM only extracts visible page scenario, visible entity names, and visible behaviors. URL classifier / platform context / rule engine decides whether the entity is suspicious, mismatched, unauthorized, or fake.
+
+### Shared risk_behavior
+
+For all page types except `porn`, `gambling`, `game`, `crypto`, and `rebate`, the following shared risk behavior may be added:
+
+`suspected_brand_impersonation`
+
+Whether the page appears to use a known or official-looking entity identity to carry a service, login, payment, transaction, financial, governmental, or institutional workflow.
+
+This is a weak candidate risk behavior. It must not be used alone as final block evidence.
+
+Applicable page types:
+
+- `mall`
+- `payment`
+- `login`
+- `investment`
+- `digital_goods`
+- `politic`
+- `fake`
+- `other`
+
+Not applicable page types:
+
+- `porn`
+- `gambling`
+- `game`
+- `crypto`
+- `rebate`
+- `general`
+
+### Shared evidence / visual signal
+
+Use the unified field name:
+
+`site_or_entity_name`
+
+The readable website name, platform name, brand name, institution name, government/agency name, payment provider name, mall/store name, securities/bank/insurance name, or other visible entity name shown on the page.
+
+This replaces new page-specific brand-name extraction fields such as `brand_name`, `visible_brand_names`, or `payment_brand_names` in future prompt versions. Existing legacy fields may be mapped into `site_or_entity_name` during adapter normalization.
+
+Important boundary:
+
+- `site_or_entity_name` is only visible text/entity extraction.
+- It does not decide whether the entity is official, fake, authorized, or mismatched.
+- Entity authenticity, domain mismatch, IP region mismatch, known-customer mismatch, whitelist miss, or official-domain miss must be derived by URL classifier / platform context / rule engine.
+
+### Rule direction for fake
+
+`fake` final advice should be produced by rule/context composition, not by VLM entity authenticity judgment.
+
+Example rule patterns:
+
+```text
+page_type IN [mall, payment, login, investment, digital_goods, politic, fake, other]
+AND risk_behavior.suspected_brand_impersonation = true
+AND visual_signals.site_or_entity_name is not empty
+AND url_or_platform_context has entity/domain/customer/region abnormality
+=> final_advice = fake
+```
+
+```text
+page_type = mall
+AND risk_behavior.mall_transaction = true
+AND risk_behavior.suspected_brand_impersonation = true
+AND visual_signals.site_or_entity_name is not empty
+AND url_or_platform_context has abnormality
+=> final_advice = fake
+```
+
+```text
+page_type = investment
+AND (
+  risk_behavior.fund_operation = true
+  OR risk_behavior.open_account = true
+  OR risk_behavior.login_register_entry = true
+)
+AND risk_behavior.suspected_brand_impersonation = true
+AND visual_signals.site_or_entity_name is not empty
+AND url_or_platform_context has abnormality
+=> final_advice = fake or finance, depending on rule priority and evidence strength
+```
+
+Priority notes:
+
+- Hard `porn` and hard `gambling` override fake.
+- `crypto` and `rebate` keep their own page types and risk behaviors for now.
+- Securities, banking, insurance, and payment impersonation are usually routed to `investment` or `payment` first, then Rule Engine decides `final_advice = fake` or `finance`.
+- Government or public-service impersonation is routed to `politic`, then Rule Engine decides `final_advice = fake` when the issue is impersonation, or `final_advice = politic` when the issue is political sensitive / terrorism / separatism content.
 
 ## Page Type: investment
 
@@ -48,12 +147,14 @@ Current allowed `page_type` values:
     "trading": true,
     "fund_operation": true,
     "login_register_entry": true,
-    "open_account": false
+    "open_account": false,
+    "suspected_brand_impersonation": false
   },
   "visual_signals": {
     "institutional_branding": true,
     "customer_service_entry": true,
-    "invitation_code_required": false
+    "invitation_code_required": false,
+    "site_or_entity_name": []
   }
 }
 ```
@@ -84,6 +185,12 @@ Whether the page shows login or registration entry, such as login button, regist
 
 Whether the page shows account opening entry, such as open account, online account opening, create trading account, or similar onboarding elements.
 
+`suspected_brand_impersonation`
+
+Whether the page appears to use a known securities, banking, insurance, payment, institution, or company identity to carry an investment, account opening, login, or fund-operation workflow.
+
+This field only marks an impersonation candidate. Entity authenticity must be confirmed by URL classifier / platform context / rule engine.
+
 #### visual_signals
 
 `institutional_branding`
@@ -97,6 +204,12 @@ Whether the page shows a clear customer service or support entry, such as custom
 `invitation_code_required`
 
 Whether the page requires or displays an invitation code, referral code, agent code, invite-only code, or similar access requirement.
+
+`site_or_entity_name`
+
+The readable website name, platform name, institution name, securities/bank/insurance/payment name, or company/entity name visible in the screenshot.
+
+This is an open list extracted from visible content. It does not determine whether the entity is official or fake.
 
 ### Rule Direction
 
@@ -143,14 +256,15 @@ AND (
 {
   "page_type": "mall",
   "risk_behavior": {
-    "mall_transaction": true
+    "mall_transaction": true,
+    "suspected_brand_impersonation": false
   },
   "visual_signals": {
     "mall_brand_visible": true,
     "product_info_visible": true,
-    "transaction_entry_visible": true
-  },
-  "visible_brand_names": []
+    "transaction_entry_visible": true,
+    "site_or_entity_name": []
+  }
 }
 ```
 
@@ -168,6 +282,12 @@ The page is a mall, shopping, store, product, order, or goods transaction page.
 
 Whether the page shows or guides goods transaction behavior, such as browsing products, placing an order, buying, adding to cart, submitting an order, contacting seller, or paying.
 
+`suspected_brand_impersonation`
+
+Whether the mall page appears to use a known mall, store, brand, platform, or official-looking entity identity as the carrier of a goods transaction flow.
+
+This field does not prove fake by itself. The rule engine should combine it with `site_or_entity_name`, transaction signals, and URL/platform context.
+
 #### visual_signals
 
 `mall_brand_visible`
@@ -176,7 +296,7 @@ Whether the page visibly shows a mall, store, platform, brand, logo, trademark, 
 
 This field only records visible brand or platform presentation. It does not determine whether the brand is impersonated.
 
-#### visible_brand_names
+`site_or_entity_name`
 
 The readable brand, platform, mall, or store names visible in the screenshot.
 
@@ -202,6 +322,84 @@ AND risk_behavior.mall_transaction = true
 AND visual_signals.mall_brand_visible = true
 AND visual_signals.transaction_entry_visible = true
 => possible_mall_fraud / need_preview
+```
+
+## Page Type: payment
+
+### Draft Field Structure
+
+This is a transition draft for VLM testing.
+
+```json
+{
+  "page_type": "payment",
+  "risk_behavior": {
+    "suspected_unsafe_payment": true,
+    "suspected_brand_impersonation": false
+  },
+  "visual_signals": {
+    "payment_brand_visible": true,
+    "payment_or_fund_entry_visible": true,
+    "site_or_entity_name": []
+  }
+}
+```
+
+### Field Meaning
+
+#### page_type
+
+`payment`
+
+The page subject is payment, transfer, recharge, withdrawal, balance, cashout, receipt, collection, refund, bank card flow, payment review, or similar money operation.
+
+Payment pages can include banking, insurance, securities, payment provider, mall, government/public-service payment, or platform collection scenarios. The page type describes the money operation scenario; final `fake` or `finance` advice is decided by Rule Engine.
+
+#### risk_behavior
+
+`suspected_unsafe_payment`
+
+Whether the page shows or guides a suspicious or unsafe payment / fund operation, such as abnormal collection, transfer, recharge, withdrawal, cashout, receipt, bank card flow review, payment quota, refund, or payment channel behavior.
+
+This does not prove fraud by itself.
+
+`suspected_brand_impersonation`
+
+Whether the payment page appears to use a known bank, securities firm, insurance company, payment provider, government/public-service entity, mall/platform, or official-looking entity identity as the carrier of the money operation.
+
+This is only an impersonation candidate. Entity authenticity must be confirmed by URL classifier / platform context / rule engine.
+
+#### visual_signals
+
+`payment_brand_visible`
+
+Whether the page visibly shows a payment provider, bank, securities firm, insurance company, government/public-service entity, platform, mall, or other payment-related entity identity.
+
+`payment_or_fund_entry_visible`
+
+Whether the page visibly shows payment, transfer, recharge, withdrawal, balance, cashout, receipt, collection, refund, bank card flow, payment review, quota, or similar money-operation entries or wording.
+
+`site_or_entity_name`
+
+The readable website name, payment provider name, bank/securities/insurance name, government/public-service name, mall/platform name, or other visible entity name shown on the page.
+
+This is open visible entity extraction, not an authenticity judgment.
+
+### Rule Direction
+
+```text
+page_type = payment
+AND risk_behavior.suspected_unsafe_payment = true
+AND visual_signals.payment_or_fund_entry_visible = true
+=> finance / need_preview, depending on evidence strength
+```
+
+```text
+page_type = payment
+AND risk_behavior.suspected_brand_impersonation = true
+AND visual_signals.site_or_entity_name is not empty
+AND url_or_platform_context has entity/domain/customer/region abnormality
+=> final_advice = fake
 ```
 
 ## Page Type: rebate
@@ -315,13 +513,15 @@ AND (
   "page_type": "login",
   "risk_behavior": {
     "restricted_access_registration": true,
-    "customer_service_assisted_login": true
+    "customer_service_assisted_login": true,
+    "suspected_brand_impersonation": false
   },
   "visual_signals": {
     "customer_service_entry": true,
     "invitation_code_required": true,
     "guest_access_entry": true,
-    "public_registration_entry": false
+    "public_registration_entry": false,
+    "site_or_entity_name": []
   }
 }
 ```
@@ -348,6 +548,12 @@ Whether the login, registration, joining, or authentication area prominently pro
 
 This is suspicious but should be treated carefully. A customer service entry alone does not prove fraud.
 
+`suspected_brand_impersonation`
+
+Whether the login, registration, authentication, or account access page appears to use a known platform, brand, institution, payment provider, government/public-service entity, or official-looking entity identity.
+
+This is only an impersonation candidate and must be confirmed by URL/platform context or stronger rule evidence.
+
 #### visual_signals
 
 `customer_service_entry`
@@ -371,6 +577,12 @@ Guest access is not the same as public registration.
 Whether the page visibly provides a public registration entry that allows the user to create a formal account or formally join the system without an invitation code, team code, referral code, superior code, agent code, or similar non-public access code.
 
 Guest access does not count as public registration.
+
+`site_or_entity_name`
+
+The readable website name, platform name, institution name, government/public-service entity name, or brand/entity name visible in the screenshot.
+
+This is open visible entity extraction, not an authenticity judgment.
 
 ### Rule Direction
 
@@ -493,7 +705,8 @@ AND visual_signals.language_switch_entry = false
   "page_type": "digital_goods",
   "risk_behavior": {
     "virtual_goods_trading": true,
-    "agent_recruitment": true
+    "agent_recruitment": true,
+    "suspected_brand_impersonation": false
   },
   "visual_signals": {
     "virtual_goods_or_account_visible": true,
@@ -501,7 +714,8 @@ AND visual_signals.language_switch_entry = false
     "customer_service_entry": true,
     "supply_or_substation_entry": true,
     "order_query_entry": true,
-    "vpn_or_proxy_service_visible": true
+    "vpn_or_proxy_service_visible": true,
+    "site_or_entity_name": []
   }
 }
 ```
@@ -525,6 +739,12 @@ Whether the page shows or guides trading of virtual goods, accounts, card/key/co
 `agent_recruitment`
 
 Whether the page shows agent recruitment, substation joining, reseller recruitment, supply agent recruitment, promotion earning, daily income claims, referral distribution, or similar agent/distribution behavior.
+
+`suspected_brand_impersonation`
+
+Whether the virtual goods, account, code, membership, or digital service page appears to use a known platform, brand, official-looking entity, or institutional identity as the carrier of the service.
+
+This is only a weak impersonation candidate. It must be combined with entity extraction and URL/platform context before final `fake` advice.
 
 #### visual_signals
 
@@ -553,6 +773,12 @@ Whether the page visibly shows order, place order, order query, query, tutorial,
 Whether the page visibly shows VPN, proxy, node, circumvention, accelerator, airport, Proxy, V2Ray, Clash, Shadowrocket, or similar VPN/proxy goods or services.
 
 This signal does not change `page_type` to `vpn`. It only allows the rule engine to assign `final_advice = vpn` when VPN/proxy goods or services are visible inside another page type.
+
+`site_or_entity_name`
+
+The readable website name, platform name, brand name, digital service name, store name, or other entity name visible in the screenshot.
+
+This is open visible entity extraction, not an authenticity judgment.
 
 ### Rule Direction
 
@@ -1109,13 +1335,16 @@ This is a transition draft for VLM testing.
   "page_type": "politic",
   "risk_behavior": {
     "political_sensitive_content": true,
-    "terrorism_or_separatism_content": true
+    "terrorism_or_separatism_content": true,
+    "suspected_brand_impersonation": false
   },
   "visual_signals": {
     "china_political_sensitive_visible": true,
     "military_or_police_sensitive_visible": true,
     "terrorism_or_extremism_visible": true,
-    "separatism_symbol_visible": true
+    "separatism_symbol_visible": true,
+    "government_or_public_service_visible": true,
+    "site_or_entity_name": []
   }
 }
 ```
@@ -1126,7 +1355,12 @@ This is a transition draft for VLM testing.
 
 `politic`
 
-The page subject is China political sensitive content, military/police sensitive content, international terrorism, extremism, separatism, or related political risk content.
+The page subject is China political sensitive content, military/police sensitive content, international terrorism, extremism, separatism, government/public-service pages, public agency pages, or related political / public-institution scenarios.
+
+Government or public-service pages are routed to `politic` so this page type can carry both:
+
+- true political sensitive / terrorism / separatism risk, which should become `final_advice = politic`;
+- government or public-service impersonation risk, which should become `final_advice = fake` when rule/context evidence supports impersonation.
 
 #### risk_behavior
 
@@ -1137,6 +1371,12 @@ Whether the page shows or promotes political sensitive content, especially China
 `terrorism_or_separatism_content`
 
 Whether the page shows or promotes terrorism, extremism, violent organization, separatism, national split, terrorist symbols, extremist propaganda, or related content.
+
+`suspected_brand_impersonation`
+
+Whether the page appears to use a government, public-service, party/state organ, police/military, official agency, or public institution identity as the carrier of a login, payment, service, certificate, notice, contact, or other workflow.
+
+This is only an impersonation candidate. VLM must not decide whether the page is truly official; URL/platform context and Rule Engine must confirm fake risk.
 
 #### visual_signals
 
@@ -1156,6 +1396,16 @@ Whether the page visibly shows terrorism, extremist organization, violent extrem
 
 Whether the page visibly shows separatist slogans, flags, maps, symbols, independence claims, national split content, or related visuals.
 
+`government_or_public_service_visible`
+
+Whether the page visibly shows a government, public-service, party/state organ, police/military, public agency, official service hall, public hotline, public certificate, or similar public institution identity.
+
+`site_or_entity_name`
+
+The readable government/public-service name, agency name, website name, institution name, party/state organ name, police/military entity name, or other visible entity name in the screenshot.
+
+This is open visible entity extraction, not an authenticity judgment.
+
 ### Rule Direction
 
 ```text
@@ -1167,11 +1417,94 @@ AND (
 => final_advice = politic
 ```
 
+```text
+page_type = politic
+AND risk_behavior.suspected_brand_impersonation = true
+AND visual_signals.site_or_entity_name is not empty
+AND url_or_platform_context has entity/domain/customer/region abnormality
+=> final_advice = fake
+```
+
+```text
+page_type = politic
+AND visual_signals.government_or_public_service_visible = true
+AND no political sensitive / terrorism / separatism behavior
+AND no fake context abnormality
+=> not hard violation
+```
+
+## Page Type: fake
+
+### Draft Field Structure
+
+This is a narrow fallback page type for VLM testing.
+
+```json
+{
+  "page_type": "fake",
+  "risk_behavior": {
+    "suspected_brand_impersonation": true
+  },
+  "visual_signals": {
+    "site_or_entity_name": []
+  }
+}
+```
+
+### Field Meaning
+
+#### page_type
+
+`fake`
+
+The page subject is mainly an impersonated official/entity page, and the visible scenario cannot be better routed to `mall`, `payment`, `investment`, `login`, `digital_goods`, `politic`, or `other`.
+
+Use `fake` narrowly. If the page has a clear business scenario, keep that scenario page type and use `risk_behavior.suspected_brand_impersonation` instead.
+
+Examples:
+
+- official-looking entity landing page with no clear mall/payment/login/investment flow;
+- brand or institution entry page whose main visible purpose is entity impersonation rather than a specific transaction workflow;
+- fake customer-service / official-service entry page that cannot be assigned to a more specific page type.
+
+#### risk_behavior
+
+`suspected_brand_impersonation`
+
+Whether the page appears to use a known or official-looking website, brand, institution, government/public-service entity, financial entity, payment provider, mall/platform, or other entity identity as the carrier of a service or entry page.
+
+This is only an impersonation candidate. It must not be used alone as final block evidence.
+
+#### visual_signals
+
+`site_or_entity_name`
+
+The readable website name, platform name, brand name, institution name, government/public-service name, payment provider name, mall/store name, or other visible entity name shown on the page.
+
+This is open visible entity extraction, not an authenticity judgment.
+
+### Rule Direction
+
+```text
+page_type = fake
+AND risk_behavior.suspected_brand_impersonation = true
+AND visual_signals.site_or_entity_name is not empty
+AND url_or_platform_context has entity/domain/customer/region abnormality
+=> final_advice = fake
+```
+
+```text
+page_type = fake
+AND risk_behavior.suspected_brand_impersonation = true
+AND context abnormality is missing or weak
+=> final_action = need_preview
+```
+
 ## Page Type: general
 
 ### Draft Field Structure
 
-This is a transition draft for VLM testing. `general` is the default container for safe or ordinary pages outside current risk scenarios.
+This is a transition draft for VLM testing. `general` is the default container for safe or ordinary good pages outside current risk scenarios.
 
 ```json
 {
@@ -1194,9 +1527,11 @@ This is a transition draft for VLM testing. `general` is the default container f
 
 `general`
 
-The page subject is ordinary, safe, or currently unsupported non-risk content, such as news, articles, education, tools, corporate websites, brand display, normal product/service introduction without transaction risk, normal social content, normal sports information, or ordinary game entertainment without private server/cheat/gambling evidence.
+The page subject is ordinary and safe, such as news, articles, education, tools, corporate websites, brand display, normal product/service introduction without transaction risk, normal social content, normal sports information, or ordinary game entertainment without private server/cheat/gambling evidence.
 
-Use `general` when the page does not fit the existing risk page types and there is no clear suspicious or violating scenario. This page type is mainly for `good/pass` fallback after Rule Engine checks.
+Use `general` only when the page does not fit the existing risk page types and there is no clear suspicious or violating scenario. This page type is mainly for `good/pass` fallback after Rule Engine checks.
+
+Do not use `general` for suspicious fake/impersonation pages. Route those pages to the relevant scenario page type (`mall`, `payment`, `investment`, `login`, `digital_goods`, `politic`) or to narrow fallback `fake` / `other`.
 
 #### risk_behavior
 
@@ -1226,20 +1561,20 @@ Whether the page visibly shows education, news, learning, documentation, calcula
 
 ```text
 page_type = general
-AND no high-risk cross-page visual_signals
+AND no risk behavior
+AND no suspicious scenario
 => final_advice = good
 ```
 
 ```text
 page_type = general
-AND gambling/porn/politic/game/vpn/finance/fake strong signals are visible
-=> Rule Engine should use those signals to correct final_advice or send need_preview
+AND suspicious fake/impersonation, finance, gambling, porn, politic, game, vpn, or other risk signals are visible
+=> page_type should be corrected away from general, or final_action should be need_preview with schema/routing warning
 ```
 
 For speed, `general` should not require full extraction of every risk category. In the transition prompt, it should only focus on several false-positive-prone areas:
 
 - ordinary game/sports vs gambling
-- ordinary brand/corporate page vs fake
 - ordinary game page vs private server/cheat
 - ordinary information/tool/news/education page vs unsupported risk
 
@@ -1253,12 +1588,14 @@ This is a transition draft for VLM testing.
 {
   "page_type": "other",
   "risk_behavior": {
-    "unclassified_suspicious_activity": true
+    "unclassified_suspicious_activity": true,
+    "suspected_brand_impersonation": false
   },
   "visual_signals": {
     "unclassified_risk_visible": true,
     "abnormal_contact_or_redirect_visible": true,
-    "suspicious_service_or_claim_visible": true
+    "suspicious_service_or_claim_visible": true,
+    "site_or_entity_name": []
   }
 }
 ```
@@ -1279,6 +1616,12 @@ Use `other` for risk fallback, not for ordinary safe pages. Safe unsupported pag
 
 Whether the page shows suspicious or abnormal behavior that does not fit existing page types, such as unclear risk service, abnormal solicitation, suspicious recruitment, unexplained high reward, unusual contact guidance, or other unclassified risk activity.
 
+`suspected_brand_impersonation`
+
+Whether the page appears to use a known or official-looking website, platform, institution, brand, government/public-service entity, payment provider, mall/store, or other entity identity, but the page cannot be cleanly routed to a more specific page type.
+
+Use this only as a weak candidate signal. Prefer specific scenario page types when possible.
+
 #### visual_signals
 
 `unclassified_risk_visible`
@@ -1292,6 +1635,12 @@ Whether the page visibly emphasizes unusual contact, QR code, external app redir
 `suspicious_service_or_claim_visible`
 
 Whether the page visibly shows suspicious service claims, abnormal guarantees, black/grey market wording, exaggerated promise, or hard-to-classify risk service.
+
+`site_or_entity_name`
+
+The readable website name, platform name, brand name, institution name, public-service entity name, payment provider name, mall/store name, or other visible entity name shown on the page.
+
+This is open visible entity extraction, not an authenticity judgment.
 
 ### Rule Direction
 
